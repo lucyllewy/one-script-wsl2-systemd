@@ -1,0 +1,1 @@
+%sudo ALL=(root) NOPASSWD: /bin/sh /etc/profile.d/00-wsl2-systemd.sh
