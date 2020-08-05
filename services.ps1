@@ -14,7 +14,7 @@ try {
 } catch {}
 
 try {
-    Register-ScheduledJob -Name GPGAgent -Trigger (New-JobTrigger -AtLogOn) -ScheduledJobOption (New-ScheduledJobOption -RequireNetwork) -RunNow -ScriptBlock {
+    Register-ScheduledJob -Name GPGAgent -Trigger (New-JobTrigger -AtLogOn) -RunNow -ScriptBlock {
         & "${env:ProgramFiles(x86)}/GnuPG/bin/gpg-connect-agent.exe" /bye
     }
 } catch {
