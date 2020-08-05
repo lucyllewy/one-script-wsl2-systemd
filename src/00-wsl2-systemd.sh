@@ -20,6 +20,14 @@ if [ -z "$SYSTEMD_PID" ] || [ "$SYSTEMD_PID" -ne 1 ]; then
                 exec sudo /bin/sh "/etc/profile.d/00-wsl2-systemd.sh"
         fi
 
+        if [ ! -f /etc/environment.orig ]; then
+                cp /etc/environment /etc/environment.orig
+        else
+                cp /etc/environment.orig /etc/environment
+        fi
+        echo "WSL_INTEROP='$WSL_INTEROP'" >> /etc/environment
+        echo "DISPLAY='$(awk '/nameserver/ { print $2":0" }' /etc/resolv.conf)'" >> /etc/environment
+
         if [ -z "$SYSTEMD_PID" ]; then
                 env -i /usr/bin/unshare --fork --mount-proc --pid -- sh -c "
                         mount -t binfmt_misc binfmt_misc /proc/sys/fs/binfmt_misc
@@ -38,3 +46,10 @@ unset SYSTEMD_EXE
 unset SYSTEMD_PID
 
 [ -f "$HOME/.profile-systemd" ] && source "$HOME/.profile-systemd"
+
+if [ -d "$HOME/.wslprofile.d" ]; then
+        for script in "$HOME/.wslprofile.d/"*; do
+                source "$script"
+        done
+        unset script
+fi
