@@ -33,3 +33,8 @@ You can also specify a distro name with the `-distro Ubuntu-20.04` flag:
 ```powershell
 powershell.exe -NonInteractive -NoProfile -ExecutionPolicy Bypass -File \path\to\install.ps1 -distro Ubuntu-20.04
 ```
+
+## Alternatives
+
+- [Damion Gans' installer for the two-script variant](https://github.com/damionGans/ubuntu-wsl2-systemd-script/)
+- [My 'change the user shell' variant that supports zsh and fish](https://snapcraft.ninja/2020/08/06/starting-systemd-in-wsl-when-you-login-to-windows-youll-be-astounded-by-the-speed-improvement/)
