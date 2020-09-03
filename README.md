@@ -37,4 +37,4 @@ powershell.exe -NonInteractive -NoProfile -ExecutionPolicy Bypass -File \path\to
 ## Alternatives
 
 - [Damion Gans' installer for the two-script variant](https://github.com/damionGans/ubuntu-wsl2-systemd-script/)
-- [My 'change the user shell' variant that supports zsh and fish](https://snapcraft.ninja/2020/08/06/starting-systemd-in-wsl-when-you-login-to-windows-youll-be-astounded-by-the-speed-improvement/)
+- [My 'change the user shell' variant that supports zsh and fish](https://github.com/diddlesnaps/chsh-variant-wsl2-systemd)
