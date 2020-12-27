@@ -42,7 +42,7 @@ Currently supported distros:
 - Debian
 - Alpine
 - OpenSUSE
-- Any other linux distribution with `apt-get` or `zypper` as paket manager
+- Any other linux distribution with `apt-get` or `zypper` as packet manager
 
 ## Alternatives
 
