@@ -28,7 +28,7 @@ try {
 
 try {
     Register-ScheduledJob -Name UpdateWSL2CustomKernel -Trigger (New-JobTrigger -AtLogOn) -ScheduledJobOption (New-ScheduledJobOption -RequireNetwork) -RunNow -ScriptBlock {
-        function Get-IniContent ($filePath)
+        function Get-IniContent($FilePath)
         {
             $ini = @{}
             switch -regex -file $FilePath
@@ -88,14 +88,14 @@ try {
             $assets = $latest.assets | Where-Object {$_.name -Like '*-x86_64'}
             Invoke-WebRequest -Uri $assets.browser_download_url -OutFile '"$env:APPDATA/wsl2-custom-kernel"'
             if ($?) {
-                Move-Item '"$env:APPDATA/wsl2-custom-kernel.tmp"' '"$env:APPDATA/wsl2-custom-kernel"' -Force
-                $latest_version | Set-Content '"$env:APPDATA/wsl2-custom-kernel-version.txt"'
+                Move-Item "$env:APPDATA/wsl2-custom-kernel.tmp" "$env:APPDATA/wsl2-custom-kernel" -Force
+                $latest_version | Set-Content "$env:APPDATA/wsl2-custom-kernel-version.txt"
                 $wslconfig = @{'wsl2'=@{'kernel'=''}}
-                if (TestPath('"$env:USERPROFILE/.wslconfig"')) {
-                    $wslconfig = Get-IniContent '"$env:USERPROFILE/.wslconfig"'
+                if (Test-Path("$env:USERPROFILE/.wslconfig")) {
+                    $wslconfig = Get-IniContent "$env:USERPROFILE/.wslconfig"
                 }
-                $wslconfig.wsl2.kernel = '"$env:APPDATA\wsl2-custom-kernel"'.Replace('\', '\\')
-                Out-IniFile $wslconfig '"$env:USERPROFILE/.wslconfig"'
+                $wslconfigp["wsl2"]["kernel"] = "$env:APPDATA\wsl2-custom-kernel".Replace('\', '\\')
+                Out-IniFile $wslconfig "$env:USERPROFILE/.wslconfig"
             }
         }
     }
