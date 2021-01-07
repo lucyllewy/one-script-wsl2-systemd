@@ -44,54 +44,100 @@ $agentfiles = @{
 $npiperelayUrl = 'https://github.com/NZSmartie/npiperelay/releases/download/v0.1/npiperelay.exe'
 
 [string[]]$wslparams = $null
-if ($Distro) {
-    $wslparams += '--distribution', $Distro
-} else {
-    $Distro = 'your default distro'
-}
 
-function Invoke-WslCommand($User, $Command) {
-    $params = $wslparams
-    if ($User) {
-        $params += '--user', $User
+function Get-IniContent($filePath)
+{
+    $ini = @{}
+    switch -regex -file $FilePath
+    {
+        "^\[(.+)\]" # Section
+        {
+            $section = $matches[1]
+            $ini[$section] = @{}
+            $CommentCount = 0
+        }
+        "^(;.*)$" # Comment
+        {
+            $value = $matches[1]
+            $CommentCount = $CommentCount + 1
+            $name = "Comment" + $CommentCount
+            $ini[$section][$name] = $value
+        }
+        "(.+?)\s*=(.*)" # Key
+        {
+            $name,$value = $matches[1..2]
+            $ini[$section][$name] = $value
+        }
     }
-    $params += '-e', 'sh'
-    "$Command`nexit;".Replace("`r`n", "`n") | & wsl.exe $params
+    return $ini
 }
 
-function Add-WslFile($User, $Uri, $File, $Replacements) {
-    if ($Uri -and $File) {
-        $response = Invoke-WebRequest -Uri $Uri -UseBasicParsing
-        if ($response.StatusCode -eq 200) {
-            if ($response.Headers['Content-Type'] -eq 'application/octet-stream') {
-                $content = [Text.Encoding]::UTF8.GetString($response.content)
-            } else {
-                $content = $response.Content
-            }
-            if ($Replacements) {
-                $Replacements.keys | ForEach-Object {
-                    $content = $content.Replace($_, $relayexe).Replace($Replacements[$_], $gpgsock)
+function Write-IniOutput($InputObject)
+{
+    foreach ($i in $InputObject.keys)
+    {
+        if (!($($InputObject[$i].GetType().Name) -eq "Hashtable"))
+        {
+            #No Sections
+            Write-Output "$i=$($InputObject[$i])"
+        } else {
+            #Sections
+            Write-Output "[$i]"
+            Foreach ($j in ($InputObject[$i].keys | Sort-Object))
+            {
+                if ($j -match "^Comment[\d]+") {
+                    Write-Output "$($InputObject[$i][$j])"
+                } else {
+                    Write-Output "$j=$($InputObject[$i][$j])"
                 }
             }
-            Invoke-WslCommand -User $User -Command "
-mkdir -p `"`$(dirname `"$File`")`"
-cat > `"$File`" <<'EOF'
-$content
-EOF
-"
-        } else {
-            Write-Output $response.StatusCode
-            throw
+            Write-Output ""
         }
     }
 }
 
-function Add-WslFiles($Files, $Replacements) {
+function Add-WslFileContent($DistributionName, $User, $File, $Content) {
+    Invoke-WslCommand -DistributionName $DistributionName -User $User -Command "
+mkdir -p `"`$(dirname `"$File`")`"
+cat > `"$File`" <<'EOF'
+$Content
+EOF
+"
+}
+
+function Add-WslFile($DistributionName, $User, $Path, $File, $Replacements) {
+    if ($Path -and $File) {
+        $Content = ""
+        if ($Path.StartsWith("http://") -or $Path.StartsWith("https://")) {
+            $response = Invoke-WebRequest -Uri $Path -UseBasicParsing
+            if ($response.StatusCode -eq 200) {
+                if ($response.Headers['Content-Type'] -eq 'application/octet-stream') {
+                    $Content = [Text.Encoding]::UTF8.GetString($response.content)
+                } else {
+                    $Content = $response.Content
+                }
+            } else {
+                Write-Output $response.StatusCode
+                throw
+            }
+        }
+        if ($Content -and $Replacements) {
+            $Replacements.keys | ForEach-Object {
+                $Content = $Content.Replace($_, $relayexe).Replace($Replacements[$_], $gpgsock)
+            }
+        }
+        if ($Content) {
+            Add-WslFileContent -DistributionName $DistributionName -User $User -Content $Content
+        }
+    }
+}
+
+function Add-WslFiles($DistributionName, $Files, $Replacements) {
     if ($Files) {
         $Files.values | ForEach-Object {
             $file = $_
             try {
-                Add-WslFile -User $file.user -Uri ($repoUrl + $file.source) -File $file.dest -Replacements $Replacements
+                Add-WslFile -DistributionName $DistributionName -User $file.user -Path ($repoUrl + $file.source) -File $file.dest -Replacements $Replacements
             } catch {
                 write-output $_
                 if ($file.errorIsFatal) {
@@ -113,12 +159,37 @@ function Abort-Installation {
         } else {
             $wslUser = $User
         }
-        Invoke-WslCommand -User $wslUser -Command "rm -f $remove"
+        Invoke-WslCommand -DistributionName $Distro -User $wslUser -Command "rm -f $remove"
     }
 }
 
+Write-Output "--- Installing WSL PowerShell module"
+Install-Module -Name Wsl
+Import-Module -Name Wsl
+
+if (-not $Distro) {
+    $Distro = Get-WslDistribution -Default
+    Write-Output "--- No distro specified, using your default distro $Distro"
+}
+
 Write-Output "--- Installing files in $Distro"
-Add-WslFiles -Files $files
+Add-WslFiles -DistributionName $Distro -Files $files
+
+Write-Output "--- Setting systemd to automatically start in $Distro"
+$wslconfig = @{}
+if (Test-Path("//wsl/$Distro/etc/wsl.conf")) {
+    $wslconfig = Get-IniContent "//wsl/$Distro/etc/wsl.conf"
+}
+if (-not $wslconfig["boot"]) {
+    $wslconfig["boot"] = @{}
+}
+if (-not $wslconfig["boot"]["command"]) {
+    $wslconfig["boot"]["command"] = ""
+}
+$wslconfig.boot.command = "/usr/bin/env -i /usr/bin/unshare --fork --mount-proc --pid -- sh -c 'mount -t binfmt_misc binfmt_misc /proc/sys/fs/binfmt_misc; [ -x /usr/lib/systemd/systemd ] && exec /usr/lib/systemd/systemd --unit=multi-user.target || exec /lib/systemd/systemd'"
+$wslconfig_content = Write-IniOutput $wslconfig
+
+Add-WslFileContent -DistributionName $Distro -User "root" -File "/etc/wsl.conf" -Content $wslconfig_content
 
 # Fetch agent sockets relay
 Write-Output "--- Installing SSH, GPG, etc. agent scripts in $Distro"
@@ -135,12 +206,12 @@ if ($relayResponse.StatusCode -eq 200) {
 
 # Disable some systemd units that conflict with our setup
 Write-Output "--- Disabling conflicting systemd services in $distro"
-Invoke-WslCommand -User 'root' -Command 'rm -f /etc/systemd/user/sockets.target.wants/dirmngr.socket'
-Invoke-WslCommand -User 'root' -Command 'rm -f /etc/systemd/user/sockets.target.wants/gpg-agent*.socket'
+Invoke-WslCommand -DistributionName $Distro -User 'root' -Command 'rm -f /etc/systemd/user/sockets.target.wants/dirmngr.socket'
+Invoke-WslCommand -DistributionName $Distro -User 'root' -Command 'rm -f /etc/systemd/user/sockets.target.wants/gpg-agent*.socket'
 
 # Update the desktop mime database
 Write-Output "--- Updating desktop-file MIME database in $distro"
-Invoke-WslCommand -User 'root' -Command @'
+Invoke-WslCommand -DistributionName $Distro -User 'root' -Command @'
 do_ubuntu() {
     do_apt
 }
@@ -192,7 +263,7 @@ fi
 '@
 
 Write-Output "--- Installing WSLUtilities in $distro"
-Invoke-WslCommand -User 'root' -Command @'
+Invoke-WslCommand -DistributionName $Distro -User 'root' -Command @'
 do_ubuntu() {
     export DEBIAN_FRONTEND=noninteractive
     apt-get update
