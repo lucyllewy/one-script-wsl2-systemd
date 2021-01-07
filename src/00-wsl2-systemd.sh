@@ -22,12 +22,9 @@ if [ -z "$SYSTEMD_PID" ] || [ "$SYSTEMD_PID" -ne 1 ]; then
                 exec sudo -E /bin/sh "$(realpath ${BASH_SOURCE[0]})"
         fi
 
-        if [ ! -f /etc/environment.orig ]; then
-                cp /etc/environment /etc/environment.orig
-        else
-                cp /etc/environment.orig /etc/environment
+        if ! grep -q WSL_INTEROP /etc/environment; then
+                echo "WSL_INTEROP='/run/WSL/$(ls -r /run/WSL | head -n1)'" >> /etc/environment
         fi
-        echo "WSL_INTEROP='$WSL_INTEROP'" >> /etc/environment
         if [ -z "$DISPLAY" ]; then
                 echo "DISPLAY='$(awk '/nameserver/ { print $2":0" }' /etc/resolv.conf)'" >> /etc/environment
         else

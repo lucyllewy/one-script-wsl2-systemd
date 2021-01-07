@@ -135,7 +135,6 @@ if ($relayResponse.StatusCode -eq 200) {
 
 # Disable some systemd units that conflict with our setup
 Write-Output "--- Disabling conflicting systemd services in $distro"
-Invoke-WslCommand -User 'root' -Command 'ln -sf /dev/null /etc/systemd/system/proc-sys-fs-binfmt_misc.mount'
 Invoke-WslCommand -User 'root' -Command 'rm -f /etc/systemd/user/sockets.target.wants/dirmngr.socket'
 Invoke-WslCommand -User 'root' -Command 'rm -f /etc/systemd/user/sockets.target.wants/gpg-agent*.socket'
 
