@@ -1,6 +1,6 @@
 ## About
 
-This repository includes the files to set-up WSL2 distro to run systemd.
+This repository includes the files to set-up WSL2 distro to run systemd. This version is only compatible with Windows builds numbered 21286 and higher, which as of January 2021 are only available in the Dev channel of the Windows Insider program.
 
 ### What does it do
 
@@ -21,6 +21,7 @@ This repository includes the files to set-up WSL2 distro to run systemd.
 
 ## Installing
 
+1. Run `Install-Module -Scope CurrentUser Wsl` to install the required PowerShell module
 1. Download the `install.ps1` script
 1. Open a PowerShell or CMD window: press `Win + x` then choose either "Command Prompt" or "Windows PowerShell" depending on which your system presents in the menu
 1. Run the following command in the PowerShell or CMD window to set up your default distro
