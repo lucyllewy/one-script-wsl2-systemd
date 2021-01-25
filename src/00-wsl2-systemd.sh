@@ -12,7 +12,7 @@ if [ "$(ps -c -p 1 -o command=)" != "systemd" ]; then
         fi
 
         if ! grep -q DISPLAY /etc/environment; then
-                echo "DISPLAY='$(awk '/nameserver/ { print $2":0" }' /etc/resolv.conf)'" >> /etc/environment
+                echo "DISPLAY='$(awk '/nameserver/ { print $2 }' /etc/resolv.conf)':0" >> /etc/environment
         fi
 
         exec /usr/bin/nsenter --mount --pid --target "$(ps -C systemd -o pid= | head -n1)" -- su - "$SUDO_USER"
