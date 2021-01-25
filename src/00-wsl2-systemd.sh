@@ -26,7 +26,7 @@ if [ -z "$SYSTEMD_PID" ] || [ "$SYSTEMD_PID" -ne 1 ]; then
                 echo "WSL_INTEROP='/run/WSL/$(ls -r /run/WSL | head -n1)'" >> /etc/environment
         fi
         if [ -z "$DISPLAY" ]; then
-                echo "DISPLAY='$(awk '/nameserver/ { print $2":0" }' /etc/resolv.conf)'" >> /etc/environment
+                echo "DISPLAY='$(awk '/nameserver/ { print $2 }' /etc/resolv.conf)':0" >> /etc/environment
         else
                 sed -i '/DISPLAY=.*/d' /etc/environment
         fi
