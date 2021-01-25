@@ -1,6 +1,18 @@
-param($Distro, $User)
+Using module Wsl
 
-$repoUrl = 'https://github.com/diddlesnaps/one-script-wsl2-systemd/raw/master/'
+param(
+    [Parameter(Mandatory=$false)]
+    [ValidateNotNullOrEmpty()]
+    [string]
+    $Distro,
+
+    [Parameter(Mandatory=$false)]
+    [ValidateNotNullOrEmpty()]
+    [string]
+    $User
+)
+
+$repoUrl = 'https://raw.githubusercontent.com/diddlesnaps/one-script-wsl2-systemd/build-21286%2B/'
 
 # The main files to install.
 $files = @{
@@ -96,19 +108,67 @@ function Write-IniOutput($InputObject)
     }
 }
 
-function Add-WslFileContent($DistributionName, $User, $File, $Content) {
-    Invoke-WslCommand -DistributionName $DistributionName -User $User -Command "
-mkdir -p `"`$(dirname `"$File`")`"
-cat > `"$File`" <<'EOF'
-$Content
-EOF
-"
+function Add-WslFileContent {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory=$true, ValueFromPipeline=$true)]
+        [string]$Content,
+
+        [Parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [WslDistribution[]]$Distribution,
+
+        [Parameter(Mandatory=$false)]
+        [ValidateNotNullOrEmpty()]
+        [string]$User,
+
+        [Parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$File
+    )
+
+    $args = @{}
+    if ($User) {
+        $args = @{User = $User}
+    }
+
+    Invoke-WslCommand -Distribution $Distribution @args -Command @"
+mkdir -p "`$(dirname "$File")"
+cat > "$File" <<'EOPOWERSHELLFILE'
+$($Content.Replace('"', '\"'))
+EOPOWERSHELLFILE
+"@
 }
 
-function Add-WslFile($DistributionName, $User, $Path, $File, $Replacements) {
+function Add-WslFile {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [WslDistribution[]]$Distribution,
+
+        [Parameter(Mandatory=$false)]
+        [ValidateNotNullOrEmpty()]
+        [string]$User,
+
+        [Parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$Path,
+
+        [Parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$File,
+
+        [Parameter(Mandatory=$false)]
+        $Replacements
+    )
+
+    $Path = $Path.Trim()
+    $File = $File.Trim()
     if ($Path -and $File) {
         $Content = ""
         if ($Path.StartsWith("http://") -or $Path.StartsWith("https://")) {
+            Write-Output "*** Downloading $Path"
             $response = Invoke-WebRequest -Uri $Path -UseBasicParsing
             if ($response.StatusCode -eq 200) {
                 if ($response.Headers['Content-Type'] -eq 'application/octet-stream') {
@@ -126,22 +186,52 @@ function Add-WslFile($DistributionName, $User, $Path, $File, $Replacements) {
                 $Content = $Content.Replace($_, $relayexe).Replace($Replacements[$_], $gpgsock)
             }
         }
+        $args = @{}
+        if ($User) {
+            $args = @{User = $User}
+        }
         if ($Content) {
-            Add-WslFileContent -DistributionName $DistributionName -User $User -Content $Content
+            $Content | Add-WslFileContent -Distribution $Distribution -File $File @args
         }
     }
 }
 
-function Add-WslFiles($DistributionName, $Files, $Replacements) {
+function Add-WslFiles {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [WslDistribution[]]$Distribution,
+
+        [Parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        $files,
+
+        [Parameter(Mandatory=$false)]
+        $Replacements,
+
+        [Parameter(Mandatory=$false)]
+        $User
+    )
+
     if ($Files) {
         $Files.values | ForEach-Object {
             $file = $_
             try {
-                Add-WslFile -DistributionName $DistributionName -User $file.user -Path ($repoUrl + $file.source) -File $file.dest -Replacements $Replacements
+                $source = $repoUrl.Trim() + $file.source.Trim()
+                $destfile = $file.dest.Trim()
+                $args = @{}
+                if ($file['user']) {
+                    $args = @{User = $file.user}
+                } elseif ($User) {
+                    $args = @{User = $User}
+                }
+                Write-Output "+++ Adding file `"${destfile}`" from `"$source`""
+                Add-WslFile -Distribution $Distribution -Path $source -File $destfile -Replacements $Replacements @args
             } catch {
                 write-output $_
                 if ($file.errorIsFatal) {
-                    Abort-Installation
+                    Abort-Installation -Distribution $Distribution
                     throw $file.errorMessage
                 } else {
                     Write-Warning -Message $file.errorMessage
@@ -151,34 +241,75 @@ function Add-WslFiles($DistributionName, $Files, $Replacements) {
     }
 }
 
-function Abort-Installation {
-    $files.values + $agentfiles.values | ForEach-Object {
-        $remove = $_.dest
-        if ($_.user) {
-            $wslUser = $_.user
-        } else {
-            $wslUser = $User
+function Remove-WslFiles {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory=$true, ValueFromPipeline=$true)]
+        [ValidateNotNullOrEmpty()]
+        $Files,
+    
+        [Parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [WslDistribution[]]$Distribution,
+
+        [Parameter(Mandatory=$false)]
+        [ValidateNotNullOrEmpty()]
+        [string]$User
+    )
+
+    process {
+        foreach ($file in $Files) {
+            $remove = $file.dest
+            $args = @{}
+            if ($_['user']) {
+                $args = @{User = $file.user}
+            } elseif ($User) {
+                $args = @{User = $User}
+            }
+            Invoke-WslCommand -Distribution $Distribution -Command "rm -f $remove" @args
         }
-        Invoke-WslCommand -DistributionName $Distro -User $wslUser -Command "rm -f $remove"
     }
 }
 
-Write-Output "--- Installing WSL PowerShell module"
-Install-Module -Name Wsl
-Import-Module -Name Wsl
+function Abort-Installation {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [WslDistribution[]]$Distribution
+    )
 
-if (-not $Distro) {
-    $Distro = Get-WslDistribution -Default
-    Write-Output "--- No distro specified, using your default distro $Distro"
+    $files.values | Remove-WslFiles -Distribution $Distribution
+    $agentfiles.values | Remove-WslFiles -Distribution $Distribution
 }
 
-Write-Output "--- Installing files in $Distro"
-Add-WslFiles -DistributionName $Distro -Files $files
+if ($Distro) {
+    $Distribution = Get-WslDistribution -Name $Distro | Select-Object -first 1
+    if (-not $Distribution) {
+        Write-Output "!!! $Distro is not currently installed. Refusing to continue."
+        exit
+    }
+} else {
+    $Distribution = Get-WslDistribution -Default | Select-Object -first 1
+    if (-not $Distribution) {
+        Write-Output "!!! $Distro is not currently installed, and you do not have a default distribution. Refusing to continue."
+        exit
+    }
+    Write-Output "--- No distro specified, using your default distro $($Distribution.Name)"
+}
 
-Write-Output "--- Setting systemd to automatically start in $Distro"
+$params = @{}
+if ($User) {
+    $params = @{User = $User}
+}
+
+Write-Output "--- Installing files in $($Distribution.Name)"
+Add-WslFiles -Distribution $Distribution -Files $files
+
+Write-Output "--- Setting systemd to automatically start in $($Distribution.Name)"
 $wslconfig = @{}
-if (Test-Path("//wsl/$Distro/etc/wsl.conf")) {
-    $wslconfig = Get-IniContent "//wsl/$Distro/etc/wsl.conf"
+if (Test-Path("$($Distribution.FileSystemPath)\etc\wsl.conf")) {
+    $wslconfig = Get-IniContent "$($Distribution.FileSystemPath)\etc\wsl.conf"
 }
 if (-not $wslconfig["boot"]) {
     $wslconfig["boot"] = @{}
@@ -187,31 +318,29 @@ if (-not $wslconfig["boot"]["command"]) {
     $wslconfig["boot"]["command"] = ""
 }
 $wslconfig.boot.command = "/usr/bin/env -i /usr/bin/unshare --fork --mount-proc --pid -- sh -c 'mount -t binfmt_misc binfmt_misc /proc/sys/fs/binfmt_misc; [ -x /usr/lib/systemd/systemd ] && exec /usr/lib/systemd/systemd --unit=multi-user.target || exec /lib/systemd/systemd'"
-$wslconfig_content = Write-IniOutput $wslconfig
-
-Add-WslFileContent -DistributionName $Distro -User "root" -File "/etc/wsl.conf" -Content $wslconfig_content
+(Write-IniOutput $wslconfig) -Join "`n" | Add-WslFileContent -Distribution $Distribution -User "root" -File "/etc/wsl.conf"
 
 # Fetch agent sockets relay
-Write-Output "--- Installing SSH, GPG, etc. agent scripts in $Distro"
-$gpgsock = "$env:APPDATA/gnupg/S.gpg-agent".replace('\', '/')
-$relayexe = "$env:APPDATA/wsl2-ssh-gpg-agent-relay.exe".replace('\', '/')
+Write-Output "--- Installing SSH, GPG, etc. agent scripts in $($Distribution.Name)"
+$gpgsock = "$env:APPDATA\gnupg\S.gpg-agent".replace('\', '/')
+$relayexe = "$env:APPDATA\wsl2-ssh-gpg-agent-relay.exe".replace('\', '/')
 $relayResponse = Invoke-WebRequest -Uri $npiperelayUrl -UseBasicParsing -OutFile $relayexe -PassThru
 
 if ($relayResponse.StatusCode -eq 200) {
     # Setup agent sockets
-    Add-WslFiles -Files $agentfiles -Replacements @{ '__RELAY_EXE__' = $relayexe; '__GPG_SOCK__' = $gpgsock }
+    Add-WslFiles -Distribution $Distribution -Files $agentfiles -Replacements @{ '__RELAY_EXE__' = $relayexe; '__GPG_SOCK__' = $gpgsock } @params
 } else {
     Write-Warning -Message 'Could not fetch the SSH, GPG, etc. agent relay proxy executable. Continuing without it.'
 }
 
 # Disable some systemd units that conflict with our setup
-Write-Output "--- Disabling conflicting systemd services in $distro"
-Invoke-WslCommand -DistributionName $Distro -User 'root' -Command 'rm -f /etc/systemd/user/sockets.target.wants/dirmngr.socket'
-Invoke-WslCommand -DistributionName $Distro -User 'root' -Command 'rm -f /etc/systemd/user/sockets.target.wants/gpg-agent*.socket'
+Write-Output "--- Disabling conflicting systemd services in $($Distribution.Name)"
+Invoke-WslCommand -Distribution $Distribution -User 'root' -Command 'rm -f /etc/systemd/user/sockets.target.wants/dirmngr.socket'
+Invoke-WslCommand -Distribution $Distribution -User 'root' -Command 'rm -f /etc/systemd/user/sockets.target.wants/gpg-agent*.socket'
 
 # Update the desktop mime database
-Write-Output "--- Updating desktop-file MIME database in $distro"
-Invoke-WslCommand -DistributionName $Distro -User 'root' -Command @'
+Write-Output "--- Updating desktop-file MIME database in $($Distribution.Name)"
+Invoke-WslCommand -Distribution $Distribution -User 'root' -Command @'
 do_ubuntu() {
     do_apt
 }
@@ -260,10 +389,10 @@ fi
 if command -v update-desktop-database >/dev/null; then
     update-desktop-database
 fi
-'@
+'@.Replace('"', '\"')
 
-Write-Output "--- Installing WSLUtilities in $distro"
-Invoke-WslCommand -DistributionName $Distro -User 'root' -Command @'
+Write-Output "--- Installing WSLUtilities in $($Distribution.Name)"
+Invoke-WslCommand -Distribution $Distribution -User 'root' -Command @'
 do_ubuntu() {
     export DEBIAN_FRONTEND=noninteractive
     apt-get update
@@ -293,7 +422,7 @@ do_apk() {
     apk add wslu@testing
 }
 do_sles() {
-    SLESCUR_VERSION="$(grep VERSION= /etc/os-release | sed -e s/VERSION=//g -e s/\"//g -e s/-/_/g)"
+    SLESCUR_VERSION="$(grep VERSION= /etc/os-release | sed -e s/VERSION=//g -e s/"//g -e s/-/_/g)"
     sudo zypper addrepo https://download.opensuse.org/repositories/home:/wslutilities/SLE_$SLESCUR_VERSION/home:wslutilities.repo
     sudo zypper addrepo https://download.opensuse.org/repositories/graphics/SLE_12_SP3_Backports/graphics.repo
     zypper --non-interactive install wslu
@@ -329,7 +458,7 @@ fi
 if command -v wslview >/dev/null; then
     wslview --register
 fi
-'@
+'@.Replace('"', '\"')
 
 # Install GPG4Win
 Write-Output '--- Installing GPG4Win in Windows'
@@ -337,7 +466,7 @@ winget.exe install --silent gnupg.Gpg4win
 
 Write-Output '--- Adding a Windows scheduled tasks and starting services'
 
-$adminScript = "$env:TEMP/wsl2-systemd-services.ps1"
+$adminScript = "$env:TEMP\wsl2-systemd-services.ps1"
 $response = Invoke-WebRequest -Uri ($repoUrl + 'services.ps1') -OutFile $adminScript -PassThru -UseBasicParsing
 if ($response.StatusCode -eq 200) {
     Start-Process -Verb RunAs -FilePath powershell.exe -Args '-NonInteractive', '-ExecutionPolicy', 'ByPass', $adminScript
