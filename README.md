@@ -13,7 +13,7 @@ This repository includes the files to set-up WSL2 distro to run systemd.
 - Configure xdg-open to open files and addresses in Windows
 
 #### In Windows
-- Install GPG4Win via winget.exe, which is available in the latest dev branch of Windows 10 Insider Preview.
+- Install GPG4Win via winget.exe, which is available in the latest dev branch of Windows 10 Insider Preview. (disable this with `-NoGPG`)
 - Add a scheduled task that launches when you login to Windows to start the GPG-Agent from GPG4Win
 - Install a custom WSL kernel based on the Microsoft sources with AppArmor added to support [Snap Package](https://snapcraft.io) strict confinement.
 - Add a scheduled task that launches when you login to Windows to update the custom kernel when a new release is made.
@@ -27,12 +27,22 @@ This repository includes the files to set-up WSL2 distro to run systemd.
     ```powershell
     powershell.exe -NonInteractive -NoProfile -ExecutionPolicy Bypass -File \path\to\install.ps1
     ```
+If you want to skip the GPG4Win installation, use the flag `-NoGPG`
 
-You can also specify a distro name with the `-distro Ubuntu-20.04` flag:
+You can also specify a distro name with the `-distro` flag, e.g:
 
 ```powershell
 powershell.exe -NonInteractive -NoProfile -ExecutionPolicy Bypass -File \path\to\install.ps1 -distro Ubuntu-20.04
 ```
+You will find all the available distros on your system when executing `wsl.exe --list --all` in command prompt
+
+Currently supported distros:
+- Ubuntu
+- Kali Linux
+- Debian
+- Alpine
+- OpenSUSE
+- Any other linux distribution with `apt-get` or `zypper` as packet manager
 
 ## Alternatives
 

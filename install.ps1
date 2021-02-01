@@ -1,4 +1,4 @@
-param($Distro, $User)
+param($Distro, $User, [switch]$NoGPG)
 
 $repoUrl = 'https://github.com/diddlesnaps/one-script-wsl2-systemd/raw/master/'
 
@@ -226,7 +226,7 @@ do_sles() {
     SLESCUR_VERSION="$(grep VERSION= /etc/os-release | sed -e s/VERSION=//g -e s/\"//g -e s/-/_/g)"
     sudo zypper addrepo https://download.opensuse.org/repositories/home:/wslutilities/SLE_$SLESCUR_VERSION/home:wslutilities.repo
     sudo zypper addrepo https://download.opensuse.org/repositories/graphics/SLE_12_SP3_Backports/graphics.repo
-    zypper --non-interactive install wslu
+    zypper --non-interactive --no-gpg-checks install wslu
 }
 do_zypper() {
     zypper addrepo https://download.opensuse.org/repositories/home:/wslutilities/openSUSE_Leap_15.1/home:wslutilities.repo
@@ -262,8 +262,12 @@ fi
 '@
 
 # Install GPG4Win
-Write-Output '--- Installing GPG4Win in Windows'
-winget.exe install --silent gnupg.Gpg4win
+if ($NoGPG) {
+    Write-Output 'Skipping Gpg4win installation'
+} else {
+    Write-Output '--- Installing GPG4Win in Windows'
+    winget.exe install --silent gnupg.Gpg4win
+}
 
 Write-Output '--- Adding a Windows scheduled tasks and starting services'
 
