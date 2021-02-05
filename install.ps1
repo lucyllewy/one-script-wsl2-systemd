@@ -132,12 +132,10 @@ function Add-WslFileContent {
         $args = @{User = $User}
     }
 
-    Invoke-WslCommand -Distribution $Distribution @args -Command @"
-mkdir -p "`$(dirname "$File")"
-cat > "$File" <<'EOPOWERSHELLFILE'
-$($Content.Replace('"', '\"'))
-EOPOWERSHELLFILE
-"@
+    $bytes = [System.Text.Encoding]::UTF8.GetBytes($Content)
+    $base64 = [Convert]::ToBase64String($bytes)
+
+    Invoke-WslCommand -Distribution $Distribution @args -Command "mkdir -p `"`$(dirname '$File')`" && echo $base64 | base64 -d > '$File'"
 }
 
 function Add-WslFile {
@@ -469,7 +467,7 @@ Write-Output '--- Adding a Windows scheduled tasks and starting services'
 $adminScript = "$env:TEMP\wsl2-systemd-services.ps1"
 $response = Invoke-WebRequest -Uri ($repoUrl + 'services.ps1') -OutFile $adminScript -PassThru -UseBasicParsing
 if ($response.StatusCode -eq 200) {
-    Start-Process -Verb RunAs -FilePath powershell.exe -Args '-NonInteractive', '-ExecutionPolicy', 'ByPass', $adminScript
+    Start-Process -Verb RunAs -Wait -FilePath powershell.exe -Args '-NonInteractive', '-ExecutionPolicy', 'ByPass', $adminScript
 } else {
     Write-Warning 'Could not fetch the script to set up your SSH & GPG Agents and update the custom WSL2 kernel'
 }
