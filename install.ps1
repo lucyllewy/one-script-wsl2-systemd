@@ -12,6 +12,8 @@ param(
     $User
 )
 
+$PSDefaultParameterValues['*:Encoding'] = 'utf8'
+
 $repoUrl = 'https://raw.githubusercontent.com/diddlesnaps/one-script-wsl2-systemd/build-21286%2B/'
 
 # The main files to install.
