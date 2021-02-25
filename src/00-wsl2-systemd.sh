@@ -8,11 +8,15 @@ if [ "$(ps -c -p 1 -o command=)" != "systemd" ]; then
         fi
 
         if ! grep -q WSL_INTEROP /etc/environment; then
-                echo "WSL_INTEROP='/run/WSL/$(ls -r /run/WSL | head -n1)'" >> /etc/environment
+                echo "WSL_INTEROP='/run/WSL/$(ls -rv /run/WSL | head -n1)'" >> /etc/environment
+        else
+                sed -i "s|WSL_INTEROP=.*|WSL_INTEROP='/run/WSL/$(ls -rv /run/WSL | head -n1)'|" /etc/environment
         fi
 
         if ! grep -q DISPLAY /etc/environment; then
-                echo "DISPLAY='$(awk '/nameserver/ { print $2 }' /etc/resolv.conf)':0" >> /etc/environment
+                echo "DISPLAY='$(awk '/nameserver/ { print $2 }' /etc/resolv.conf):0'" >> /etc/environment
+        else
+                sed -i "s|DISPLAY=.*|DISPLAY='$(awk '/nameserver/ { print $2 }' /etc/resolv.conf):0'|" /etc/environment
         fi
 
         exec /usr/bin/nsenter --mount --pid --target "$(ps -C systemd -o pid= | head -n1)" -- su - "$SUDO_USER"
