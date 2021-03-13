@@ -464,6 +464,59 @@ if command -v wslview >/dev/null; then
 fi
 '@.Replace('"', '\"')
 
+# Install socat for GPG and SSH agent forwarding
+Write-Output "--- Installing socat in $($Distribution.Name)"
+Invoke-WslCommand -Distribution $Distribution -User 'root' -Command @'
+do_ubuntu() {
+    do_apt
+}
+do_kali() {
+    do_apt
+}
+do_apt() {
+    export DEBIAN_FRONTEND=noninteractive
+    apt-get update
+    apt-get install -yyq socat
+}
+do_apk() {
+    apk update
+    apk add socat
+}
+do_sles() {
+    do_zypper
+}
+do_zypper() {
+    zypper --non-interactive install socat
+}
+if [ -f /etc/os-release ]; then
+    . /etc/os-release
+    case "$ID" in
+        "ubuntu")
+            do_ubuntu ;;
+        "kali")
+            do_kali ;;
+        "debian")
+            do_apt ;;
+        "alpine")
+            do_apk ;;
+        "sles")
+            do_sles ;;
+        *)
+            case "$ID_LIKE" in
+                *"debian"*)
+                    do_apt ;;
+                *"suse"*)
+                    do_zypper ;;
+                *)
+            esac
+            ;;
+    esac
+fi
+if command -v update-desktop-database >/dev/null; then
+    update-desktop-database
+fi
+'@.Replace('"', '\"')
+
 # Install GPG4Win
 if ($NoGPG) {
     Write-Output 'Skipping Gpg4win installation'
