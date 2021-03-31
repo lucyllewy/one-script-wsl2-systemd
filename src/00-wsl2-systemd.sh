@@ -9,7 +9,7 @@ if [ -z "$SYSTEMD_EXE" ]; then
 fi
 
 SYSTEMD_EXE="$SYSTEMD_EXE --unit=multi-user.target" # snapd requires multi-user.target not basic.target
-SYSTEMD_PID="$(ps -eo pid=,args= | awk '$2" "$3=="'"$SYSTEMD_EXE"'" {print $1}')"
+SYSTEMD_PID="$(ps -C systemd -o pid= | head -n1)"
 
 if [ -z "$SYSTEMD_PID" ] || [ "$SYSTEMD_PID" -ne 1 ]; then
         if [ -z "$SUDO_USER" ]; then
@@ -17,7 +17,7 @@ if [ -z "$SYSTEMD_PID" ] || [ "$SYSTEMD_PID" -ne 1 ]; then
         fi
 
         if [ "$USER" != "root" ]; then
-                exec sudo /bin/sh "/etc/profile.d/00-wsl2-systemd.sh"
+                exec sudo /bin/sh "$(realpath ${BASH_SOURCE[0]})"
         fi
 
         if [ ! -f /etc/environment.orig ]; then
@@ -34,12 +34,12 @@ if [ -z "$SYSTEMD_PID" ] || [ "$SYSTEMD_PID" -ne 1 ]; then
                         exec $SYSTEMD_EXE
                        " &
                 while [ -z "$SYSTEMD_PID" ]; do
-                        SYSTEMD_PID="$(ps -eo pid=,args= | awk '$2" "$3=="'"$SYSTEMD_EXE"'" {print $1}')"
+                        SYSTEMD_PID="$(ps -C systemd -o pid= | head -n1)"
                         sleep 1
                 done
         fi
 
-        exec /usr/bin/nsenter --all --target "$SYSTEMD_PID" -- su - "$SUDO_USER"
+        exec /usr/bin/nsenter --mount --pid --target "$SYSTEMD_PID" -- su - "$SUDO_USER"
 fi
 
 unset SYSTEMD_EXE
