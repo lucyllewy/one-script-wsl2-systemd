@@ -395,8 +395,9 @@ Write-Output "--- Installing WSLUtilities in $($Distribution.Name)"
 Invoke-WslCommand -Distribution $Distribution -User 'root' -Command @'
 do_ubuntu() {
     export DEBIAN_FRONTEND=noninteractive
+    add-apt-repository -y ppa:wslutilities/wslu
     apt-get update
-    apt-get install -yyq ubuntu-wsl
+    apt-get install -yyq wslu
 }
 do_kali() {
     export DEBIAN_FRONTEND=noninteractive
