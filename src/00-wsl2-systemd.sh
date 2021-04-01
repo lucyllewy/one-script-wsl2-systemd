@@ -18,7 +18,8 @@ if [ -z "$SYSTEMD_PID" ] || [ "$SYSTEMD_PID" -ne 1 ]; then
         fi
 
         if [ "$USER" != "root" ]; then
-                exec sudo /bin/sh "$(realpath ${BASH_SOURCE[0]})"
+                # Preserve the user's initial environment with -E so that we can interrogate whether DISPLAY is set
+                exec sudo -E /bin/sh "$(realpath ${BASH_SOURCE[0]})"
         fi
 
         if [ ! -f /etc/environment.orig ]; then
@@ -27,7 +28,11 @@ if [ -z "$SYSTEMD_PID" ] || [ "$SYSTEMD_PID" -ne 1 ]; then
                 cp /etc/environment.orig /etc/environment
         fi
         echo "WSL_INTEROP='$WSL_INTEROP'" >> /etc/environment
-        echo "DISPLAY='$(awk '/nameserver/ { print $2":0" }' /etc/resolv.conf)'" >> /etc/environment
+        if [ -z "$DISPLAY" ]; then
+                echo "DISPLAY='$(awk '/nameserver/ { print $2":0" }' /etc/resolv.conf)'" >> /etc/environment
+        else
+                sed -i '/DISPLAY=.*/d' /etc/environment
+        fi
 
         if [ -z "$SYSTEMD_PID" ]; then
                 env -i /usr/bin/unshare --fork --mount-proc --pid -- sh -c "
