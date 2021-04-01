@@ -13,7 +13,8 @@ SYSTEMD_PID="$(ps -C systemd -o pid= | head -n1)"
 
 if [ -z "$SYSTEMD_PID" ] || [ "$SYSTEMD_PID" -ne 1 ]; then
         if [ -z "$SUDO_USER" ]; then
-                export > "$HOME/.profile-systemd"
+                [ -f "$HOME/.systemd.env" ] && rm $HOME/.systemd.env
+                export > $HOME/.systemd.env
         fi
 
         if [ "$USER" != "root" ]; then
@@ -45,7 +46,10 @@ fi
 unset SYSTEMD_EXE
 unset SYSTEMD_PID
 
-[ -f "$HOME/.profile-systemd" ] && source "$HOME/.profile-systemd"
+if [ -f "$HOME/.systemd.env" ]; then
+        source "$HOME/.systemd.env"
+        rm $HOME/.systemd.env
+fi
 
 if [ -d "$HOME/.wslprofile.d" ]; then
         for script in "$HOME/.wslprofile.d/"*; do
