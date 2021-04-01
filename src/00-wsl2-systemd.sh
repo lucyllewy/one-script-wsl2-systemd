@@ -18,8 +18,7 @@ if [ -z "$SYSTEMD_PID" ] || [ "$SYSTEMD_PID" -ne 1 ]; then
         fi
 
         if [ "$USER" != "root" ]; then
-                # Preserve the user's initial environment with -E so that we can interrogate whether DISPLAY is set
-                exec sudo -E /bin/sh "$(realpath ${BASH_SOURCE[0]})"
+                exec sudo /bin/sh "$(realpath ${BASH_SOURCE[0]})"
         fi
 
         if ! grep -q WSL_INTEROP /etc/environment; then

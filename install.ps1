@@ -61,8 +61,6 @@ $agentfiles = @{
 
 $npiperelayUrl = 'https://github.com/NZSmartie/npiperelay/releases/download/v0.1/npiperelay.exe'
 
-[string[]]$wslparams = $null
-
 function Get-IniContent($filePath)
 {
     $ini = @{}
@@ -114,6 +112,31 @@ function Write-IniOutput($InputObject)
     }
 }
 
+function Invoke-WslScript {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory=$true, ValueFromPipeline=$true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$Script,
+
+        [Parameter(Mandatory=$false)]
+        [WslDistribution[]]$Distribution,
+
+        [Parameter(Mandatory=$false)]
+        [string]$User
+    )
+
+    $commandArgs = @{}
+    if ($User) {
+        $commandArgs = @{User = $User}
+    }
+
+    $bytes = [System.Text.Encoding]::UTF8.GetBytes($Script.Replace("`r`n", "`n"))
+    $base64 = [Convert]::ToBase64String($bytes)
+
+    Invoke-WslCommand -Distribution $Distribution @commandArgs -Command "`$(echo $base64 | base64 -d)"
+}
+
 function Add-WslFileContent {
     [CmdletBinding()]
     param(
@@ -133,15 +156,15 @@ function Add-WslFileContent {
         [string]$File
     )
 
-    $args = @{}
+    $commandArgs = @{}
     if ($User) {
-        $args = @{User = $User}
+        $commandArgs = @{User = $User}
     }
 
     $bytes = [System.Text.Encoding]::UTF8.GetBytes($Content)
     $base64 = [Convert]::ToBase64String($bytes)
 
-    Invoke-WslCommand -Distribution $Distribution @args -Command "mkdir -p `"`$(dirname '$File')`" && echo $base64 | base64 -d > '$File'"
+    Invoke-WslCommand -Distribution $Distribution @commandArgs -Command "mkdir -p `"`$(dirname '$File')`" && echo $base64 | base64 -d > '$File'"
 }
 
 function Add-WslFile {
@@ -190,12 +213,12 @@ function Add-WslFile {
                 $Content = $Content.Replace($_, $relayexe).Replace($Replacements[$_], $gpgsock)
             }
         }
-        $args = @{}
+        $commandArgs = @{}
         if ($User) {
-            $args = @{User = $User}
+            $commandArgs = @{User = $User}
         }
         if ($Content) {
-            $Content | Add-WslFileContent -Distribution $Distribution -File $File @args
+            $Content | Add-WslFileContent -Distribution $Distribution -File $File @commandArgs
         }
     }
 }
@@ -224,14 +247,14 @@ function Add-WslFiles {
             try {
                 $source = $repoUrl.Trim() + $file.source.Trim()
                 $destfile = $file.dest.Trim()
-                $args = @{}
+                $commandArgs = @{}
                 if ($file['user']) {
-                    $args = @{User = $file.user}
+                    $commandArgs = @{User = $file.user}
                 } elseif ($User) {
-                    $args = @{User = $User}
+                    $commandArgs = @{User = $User}
                 }
                 Write-Output "+++ Adding file `"${destfile}`" from `"$source`""
-                Add-WslFile -Distribution $Distribution -Path $source -File $destfile -Replacements $Replacements @args
+                Add-WslFile -Distribution $Distribution -Path $source -File $destfile -Replacements $Replacements @commandArgs
             } catch {
                 write-output $_
                 if ($file.errorIsFatal) {
@@ -264,13 +287,13 @@ function Remove-WslFiles {
     process {
         foreach ($file in $Files) {
             $remove = $file.dest
-            $args = @{}
+            $commandArgs = @{}
             if ($_['user']) {
-                $args = @{User = $file.user}
+                $commandArgs = @{User = $file.user}
             } elseif ($User) {
-                $args = @{User = $User}
+                $commandArgs = @{User = $User}
             }
-            Invoke-WslCommand -Distribution $Distribution -Command "rm -f $remove" @args
+            Invoke-WslCommand -Distribution $Distribution -Command "rm -f $remove" @commandArgs
         }
     }
 }
@@ -344,7 +367,7 @@ Invoke-WslCommand -Distribution $Distribution -User 'root' -Command 'rm -f /etc/
 
 # Update the desktop mime database
 Write-Output "--- Updating desktop-file MIME database in $($Distribution.Name)"
-Invoke-WslCommand -Distribution $Distribution -User 'root' -Command @'
+Invoke-WslScript -Distribution $Distribution -User 'root' -Script @'
 do_ubuntu() {
     do_apt
 }
@@ -393,10 +416,10 @@ fi
 if command -v update-desktop-database >/dev/null; then
     update-desktop-database
 fi
-'@.Replace('"', '\"')
+'@
 
 Write-Output "--- Installing WSLUtilities in $($Distribution.Name)"
-Invoke-WslCommand -Distribution $Distribution -User 'root' -Command @'
+Invoke-WslScript -Distribution $Distribution -User 'root' -Script @'
 do_ubuntu() {
     export DEBIAN_FRONTEND=noninteractive
     add-apt-repository -y ppa:wslutilities/wslu
@@ -427,7 +450,7 @@ do_apk() {
     apk add wslu@testing
 }
 do_sles() {
-    SLESCUR_VERSION="$(grep VERSION= /etc/os-release | sed -e s/VERSION=//g -e s/"//g -e s/-/_/g)"
+    SLESCUR_VERSION="$(grep VERSION= /etc/os-release | sed -e s/VERSION=//g -e s/\"//g -e s/-/_/g)"
     sudo zypper addrepo https://download.opensuse.org/repositories/home:/wslutilities/SLE_$SLESCUR_VERSION/home:wslutilities.repo
     sudo zypper addrepo https://download.opensuse.org/repositories/graphics/SLE_12_SP3_Backports/graphics.repo
     zypper --non-interactive --no-gpg-checks install wslu
@@ -461,14 +484,15 @@ if [ -f /etc/os-release ]; then
     esac
 fi
 if command -v wslview >/dev/null; then
-    wslview --register
+    wslview --reg-as-browser
 fi
-'@.Replace('"', '\"')
+'@
 
 # Install socat for GPG and SSH agent forwarding
 Write-Output "--- Installing socat in $($Distribution.Name)"
-Invoke-WslCommand -Distribution $Distribution -User 'root' -Command @'
+Invoke-WslScript -Distribution $Distribution -User 'root' -Script @'
 do_ubuntu() {
+    echo doing ubuntu
     do_apt
 }
 do_kali() {
@@ -516,7 +540,7 @@ fi
 if command -v update-desktop-database >/dev/null; then
     update-desktop-database
 fi
-'@.Replace('"', '\"')
+'@
 
 # Install GPG4Win
 if ($NoGPG) {
