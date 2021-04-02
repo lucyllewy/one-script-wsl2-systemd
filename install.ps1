@@ -68,9 +68,9 @@ function Add-WslFile($User, $Uri, $File, $Replacements) {
             } else {
                 $content = $response.Content
             }
-            if ($Replacements) {
+            if ($content -and $Replacements) {
                 $Replacements.keys | ForEach-Object {
-                    $content = $content.Replace($_, $relayexe).Replace($Replacements[$_], $gpgsock)
+                    $content = $content.Replace($_, $Replacements[$_])
                 }
             }
             Invoke-WslCommand -User $User -Command "
