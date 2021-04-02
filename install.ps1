@@ -210,7 +210,7 @@ function Add-WslFile {
         }
         if ($Content -and $Replacements) {
             $Replacements.keys | ForEach-Object {
-                $Content = $Content.Replace($_, $relayexe).Replace($Replacements[$_], $gpgsock)
+                $Content = $Content.Replace($_, $Replacements[$_])
             }
         }
         $commandArgs = @{}
