@@ -31,6 +31,11 @@ if [ -z "$SYSTEMD_PID" ] || [ "$SYSTEMD_PID" -ne 1 ]; then
         else
                 sed -i '/DISPLAY=.*/d' /etc/environment
         fi
+        # Check that /mnt/wslg/.X11-unix exists AND either /tmp/.X11-unix does not exist, or is a directory and is empty
+        if [ -d /mnt/wslg/.X11-unix ] && ( [ ! -e /tmp/.X11-unix ] || ( [ -d /tmp/.X11-unix ] && [ $(ls /tmp/.X11-unix | wc -l) -eq 0 ] ) ); then
+                rmdir /tmp/.X11-unix
+                ln -sf /mnt/wslg/.X11-unix /tmp/
+        fi
 
         if [ -z "$SYSTEMD_PID" ]; then
                 env -i /usr/bin/unshare --fork --mount-proc --pid -- sh -c "
