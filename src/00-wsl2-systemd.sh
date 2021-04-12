@@ -19,7 +19,7 @@ if [ -z "$SYSTEMD_PID" ] || [ "$SYSTEMD_PID" -ne 1 ]; then
 
         if [ "$USER" != "root" ]; then
                 # Preserve the user's initial environment with -E so that we can interrogate whether DISPLAY is set
-                exec sudo -E /bin/sh "$(realpath ${BASH_SOURCE[0]})"
+                exec sudo -E /bin/sh "$(${BASH_SOURCE[0]:-$0})"
         fi
 
         if [ ! -f /etc/environment.orig ]; then
