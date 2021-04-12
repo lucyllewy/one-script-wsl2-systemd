@@ -18,7 +18,7 @@ if [ -z "$SYSTEMD_PID" ] || [ "$SYSTEMD_PID" -ne 1 ]; then
         fi
 
         if [ "$USER" != "root" ]; then
-                exec sudo /bin/sh "$(realpath ${BASH_SOURCE[0]})"
+                exec sudo /bin/sh "$(realpath ${BASH_SOURCE[0]:-$0})"
         fi
 
         if ! grep -q WSL_INTEROP /etc/environment; then
