@@ -1,7 +1,5 @@
 [Socket]
 ListenStream=%t/wayland-0
-Requires=user-runtime-dir@.service
-After=user-runtime-dir@.service
 
 [Install]
 WantedBy=sockets.target
