@@ -1,5 +1,5 @@
 [Socket]
-ListenStream=/run/user/%i/wayland-0
+ListenStream=%t/pulse/native
 Requires=user-runtime-dir@.service
 After=user-runtime-dir@.service
 
