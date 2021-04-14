@@ -42,7 +42,49 @@ $files = @{
         'errorIsFatal' = $false;
         'errorMessage' = '';
         'user' = 'root'
-    }
+    };
+    'pulseaudio-service' = @{
+        'source' = 'src/systemd/wsl2-pulseaudio.service';
+        'dest' = '/etc/systemd/user/wsl2-pulseaudio.service';
+        'errorIsFatal' = $false;
+        'errorMessage' = '';
+        'user' = 'root'
+    };
+    'pulseaudio-socket' = @{
+        'source' = 'src/systemd/wsl2-pulseaudio.socket';
+        'dest' = '/etc/systemd/user/wsl2-pulseaudio.socket';
+        'errorIsFatal' = $false;
+        'errorMessage' = '';
+        'user' = 'root'
+    };
+    'wayland-service' = @{
+        'source' = 'src/systemd/wsl2-wayland.service';
+        'dest' = '/etc/systemd/user/wsl2-wayland.service';
+        'errorIsFatal' = $false;
+        'errorMessage' = '';
+        'user' = 'root'
+    };
+    'wayland-socket' = @{
+        'source' = 'src/systemd/wsl2-wayland.socket';
+        'dest' = '/etc/systemd/user/wsl2-wayland.socket';
+        'errorIsFatal' = $false;
+        'errorMessage' = '';
+        'user' = 'root'
+    };
+    'xwayland-service' = @{
+        'source' = 'src/systemd/wsl2-xwayland.service';
+        'dest' = '/etc/systemd/system/wsl2-xwayland.service';
+        'errorIsFatal' = $false;
+        'errorMessage' = '';
+        'user' = 'root'
+    };
+    'xwayland-socket' = @{
+        'source' = 'src/systemd/wsl2-xwayland.socket';
+        'dest' = '/etc/systemd/system/wsl2-xwayland.socket';
+        'errorIsFatal' = $false;
+        'errorMessage' = '';
+        'user' = 'root'
+    };
 }
 
 # These depend on the npiperelay.exe so we include them separately.
@@ -344,7 +386,7 @@ if (-not $wslconfig["boot"]) {
 if (-not $wslconfig["boot"]["command"]) {
     $wslconfig["boot"]["command"] = ""
 }
-$wslconfig.boot.command = "/usr/bin/env -i /usr/bin/unshare --fork --mount-proc --pid -- sh -c 'mount -t binfmt_misc binfmt_misc /proc/sys/fs/binfmt_misc; [ -x /usr/lib/systemd/systemd ] && exec /usr/lib/systemd/systemd --unit=multi-user.target || exec /lib/systemd/systemd'"
+$wslconfig.boot.command = "/usr/bin/env -i /usr/bin/unshare --fork --mount-proc --pid -- sh -c 'mount -t binfmt_misc binfmt_misc /proc/sys/fs/binfmt_misc; [ -x /usr/lib/systemd/systemd ] && exec /usr/lib/systemd/systemd --unit=multi-user.target || exec /lib/systemd/systemd'; sleep 2"
 (Write-IniOutput $wslconfig) -Join "`n" | Add-WslFileContent -Distribution $Distribution -User "root" -File "/etc/wsl.conf"
 
 # Fetch agent sockets relay
@@ -364,6 +406,11 @@ if ($relayResponse.StatusCode -eq 200) {
 Write-Output "--- Disabling conflicting systemd services in $($Distribution.Name)"
 Invoke-WslCommand -Distribution $Distribution -User 'root' -Command 'rm -f /etc/systemd/user/sockets.target.wants/dirmngr.socket'
 Invoke-WslCommand -Distribution $Distribution -User 'root' -Command 'rm -f /etc/systemd/user/sockets.target.wants/gpg-agent*.socket'
+
+Write-Output "--- Enabling custom systemd services in $($Distribution.Name)"
+Invoke-WslCommand -Distribution $Distribution -User 'root' -Command 'ln -sf ../wsl2-pulseaudio.socket /etc/systemd/user/sockets.target.wants/'
+Invoke-WslCommand -Distribution $Distribution -User 'root' -Command 'ln -sf ../wsl2-wayland.socket /etc/systemd/user/sockets.target.wants/'
+Invoke-WslCommand -Distribution $Distribution -User 'root' -Command 'ln -sf ../wsl2-xwayland.socket /etc/systemd/system/sockets.target.wants/'
 
 # Update the desktop mime database
 Write-Output "--- Updating desktop-file MIME database in $($Distribution.Name)"

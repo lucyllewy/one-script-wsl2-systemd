@@ -50,13 +50,14 @@ if [ -z "$SYSTEMD_PID" ] || [ "$SYSTEMD_PID" -ne 1 ]; then
                         mount -t binfmt_misc binfmt_misc /proc/sys/fs/binfmt_misc
                         exec $SYSTEMD_EXE
                         " &
+                sleep 2
                 while [ -z "$SYSTEMD_PID" ]; do
                         SYSTEMD_PID="$(ps -C systemd -o pid= | head -n1)"
                         sleep 1
                 done
         fi
 
-        exec /usr/bin/nsenter --mount --pid --target "$SYSTEMD_PID" -- su - "$SUDO_USER"
+        exec /usr/bin/nsenter --mount --pid --target "$SYSTEMD_PID" -- login -f "$SUDO_USER"
 fi
 
 unset SYSTEMD_EXE
