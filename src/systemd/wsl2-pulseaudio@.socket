@@ -1,0 +1,7 @@
+[Socket]
+ListenStream=/run/user/%i/pulse/native
+Requires=user-runtime-dir@.service
+After=user-runtime-dir@.service
+
+[Install]
+WantedBy=sockets.target

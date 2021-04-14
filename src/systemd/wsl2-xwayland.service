@@ -1,0 +1,6 @@
+[Unit]
+Requires=wsl2-xwayland.socket
+After=wsl2-xwayland.socket
+
+[Service]
+ExecStart=/lib/systemd/systemd-socket-proxyd /mnt/wslg/.X11-unix/X0
