@@ -1,5 +1,0 @@
-[Socket]
-ListenStream=%t/pulse/native
-
-[Install]
-WantedBy=sockets.target

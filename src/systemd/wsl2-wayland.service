@@ -1,6 +1,0 @@
-[Unit]
-Requires=wsl2-wayland.socket
-After=wsl2-wayland.socket
-
-[Service]
-ExecStart=/lib/systemd/systemd-socket-proxyd /mnt/wslg/runtime-dir/wayland-0

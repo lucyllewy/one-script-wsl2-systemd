@@ -1,6 +1,0 @@
-[Unit]
-Requires=wsl2-pulseaudio.socket
-After=wsl2-pulseaudio.socket
-
-[Service]
-ExecStart=/lib/systemd/systemd-socket-proxyd /mnt/wslg/pulse/native

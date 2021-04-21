@@ -40,49 +40,28 @@ $files = @{
         'source' = 'src/applications/wslview.desktop';
         'dest' = '/usr/share/applications/wslview.desktop';
         'errorIsFatal' = $false;
-        'errorMessage' = '';
+        'errorMessage' = 'Could not set up default file handler forwarding to Windows';
         'user' = 'root'
     };
-    'pulseaudio-service' = @{
-        'source' = 'src/systemd/wsl2-pulseaudio.service';
-        'dest' = '/etc/systemd/user/wsl2-pulseaudio.service';
+    'user-runtime-dir' = @{
+        'source' = 'src/systemd/user-runtime-dir.override';
+        'dest' = '/etc/systemd/system/user-runtime-dir@.service.d/override.conf';
         'errorIsFatal' = $false;
-        'errorMessage' = '';
-        'user' = 'root'
-    };
-    'pulseaudio-socket' = @{
-        'source' = 'src/systemd/wsl2-pulseaudio.socket';
-        'dest' = '/etc/systemd/user/wsl2-pulseaudio.socket';
-        'errorIsFatal' = $false;
-        'errorMessage' = '';
-        'user' = 'root'
-    };
-    'wayland-service' = @{
-        'source' = 'src/systemd/wsl2-wayland.service';
-        'dest' = '/etc/systemd/user/wsl2-wayland.service';
-        'errorIsFatal' = $false;
-        'errorMessage' = '';
-        'user' = 'root'
-    };
-    'wayland-socket' = @{
-        'source' = 'src/systemd/wsl2-wayland.socket';
-        'dest' = '/etc/systemd/user/wsl2-wayland.socket';
-        'errorIsFatal' = $false;
-        'errorMessage' = '';
+        'errorMessage' = 'Could not install Wayland support - Snaps supporting Wayland will fail to launch';
         'user' = 'root'
     };
     'xwayland-service' = @{
         'source' = 'src/systemd/wsl2-xwayland.service';
         'dest' = '/etc/systemd/system/wsl2-xwayland.service';
         'errorIsFatal' = $false;
-        'errorMessage' = '';
+        'errorMessage' = 'Could not install XWayland support - GUI snaps will not work';
         'user' = 'root'
     };
     'xwayland-socket' = @{
         'source' = 'src/systemd/wsl2-xwayland.socket';
         'dest' = '/etc/systemd/system/wsl2-xwayland.socket';
         'errorIsFatal' = $false;
-        'errorMessage' = '';
+        'errorMessage' = 'Could not install XWayland support - GUI snaps will not work';
         'user' = 'root'
     };
 }

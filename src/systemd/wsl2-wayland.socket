@@ -1,5 +1,0 @@
-[Socket]
-ListenStream=%t/wayland-0
-
-[Install]
-WantedBy=sockets.target
