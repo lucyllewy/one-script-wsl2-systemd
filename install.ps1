@@ -385,6 +385,12 @@ if ($relayResponse.StatusCode -eq 200) {
 Write-Output "--- Disabling conflicting systemd services in $($Distribution.Name)"
 Invoke-WslCommand -Distribution $Distribution -User 'root' -Command 'ln -sf /dev/null /etc/systemd/user/dirmngr.service'
 Invoke-WslCommand -Distribution $Distribution -User 'root' -Command 'ln -sf /dev/null /etc/systemd/user/dirmngr.socket'
+Invoke-WslCommand -Distribution $Distribution -User 'root' -Command 'ln -sf /dev/null /etc/systemd/user/gpg-agent.service'
+Invoke-WslCommand -Distribution $Distribution -User 'root' -Command 'ln -sf /dev/null /etc/systemd/user/gpg-agent.socket'
+Invoke-WslCommand -Distribution $Distribution -User 'root' -Command 'ln -sf /dev/null /etc/systemd/user/gpg-agent-ssh.socket'
+Invoke-WslCommand -Distribution $Distribution -User 'root' -Command 'ln -sf /dev/null /etc/systemd/user/gpg-agent-extra.socket'
+Invoke-WslCommand -Distribution $Distribution -User 'root' -Command 'ln -sf /dev/null /etc/systemd/user/gpg-agent-browser.socket'
+Invoke-WslCommand -Distribution $Distribution -User 'root' -Command 'ln -sf /dev/null /etc/systemd/user/ssh-agent.service'
 Invoke-WslCommand -Distribution $Distribution -User 'root' -Command 'ln -sf /dev/null /etc/systemd/user/pulseaudio.service'
 Invoke-WslCommand -Distribution $Distribution -User 'root' -Command 'ln -sf /dev/null /etc/systemd/user/pulseaudio.socket'
 Invoke-WslCommand -Distribution $Distribution -User 'root' -Command 'ln -sf /dev/null /etc/systemd/system/ModemManager.service'
