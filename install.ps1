@@ -383,12 +383,19 @@ if ($relayResponse.StatusCode -eq 200) {
 
 # Disable some systemd units that conflict with our setup
 Write-Output "--- Disabling conflicting systemd services in $($Distribution.Name)"
-Invoke-WslCommand -Distribution $Distribution -User 'root' -Command 'rm -f /etc/systemd/user/sockets.target.wants/dirmngr.socket'
-Invoke-WslCommand -Distribution $Distribution -User 'root' -Command 'rm -f /etc/systemd/user/sockets.target.wants/gpg-agent*.socket'
+Invoke-WslCommand -Distribution $Distribution -User 'root' -Command 'ln -sf /dev/null /etc/systemd/user/dirmngr.service'
+Invoke-WslCommand -Distribution $Distribution -User 'root' -Command 'ln -sf /dev/null /etc/systemd/user/dirmngr.socket'
+Invoke-WslCommand -Distribution $Distribution -User 'root' -Command 'ln -sf /dev/null /etc/systemd/user/pulseaudio.service'
+Invoke-WslCommand -Distribution $Distribution -User 'root' -Command 'ln -sf /dev/null /etc/systemd/user/pulseaudio.socket'
+Invoke-WslCommand -Distribution $Distribution -User 'root' -Command 'ln -sf /dev/null /etc/systemd/system/ModemManager.service'
+Invoke-WslCommand -Distribution $Distribution -User 'root' -Command 'ln -sf /dev/null /etc/systemd/system/NetworkManager.service'
+Invoke-WslCommand -Distribution $Distribution -User 'root' -Command 'ln -sf /dev/null /etc/systemd/system/NetworkManager-wait-online.service'
+Invoke-WslCommand -Distribution $Distribution -User 'root' -Command 'ln -sf /dev/null /etc/systemd/system/networkd-dispatcher.service'
+Invoke-WslCommand -Distribution $Distribution -User 'root' -Command 'ln -sf /dev/null /etc/systemd/system/systemd-networkd.service'
+Invoke-WslCommand -Distribution $Distribution -User 'root' -Command 'ln -sf /dev/null /etc/systemd/system/systemd-networkd-wait-online.service'
+Invoke-WslCommand -Distribution $Distribution -User 'root' -Command 'ln -sf /dev/null /etc/systemd/system/systemd-resolved.service'
 
 Write-Output "--- Enabling custom systemd services in $($Distribution.Name)"
-Invoke-WslCommand -Distribution $Distribution -User 'root' -Command 'ln -sf ../wsl2-pulseaudio.socket /etc/systemd/user/sockets.target.wants/'
-Invoke-WslCommand -Distribution $Distribution -User 'root' -Command 'ln -sf ../wsl2-wayland.socket /etc/systemd/user/sockets.target.wants/'
 Invoke-WslCommand -Distribution $Distribution -User 'root' -Command 'ln -sf ../wsl2-xwayland.socket /etc/systemd/system/sockets.target.wants/'
 
 # Update the desktop mime database
