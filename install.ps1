@@ -404,6 +404,76 @@ Invoke-WslCommand -Distribution $Distribution -User 'root' -Command 'ln -sf /dev
 Write-Output "--- Enabling custom systemd services in $($Distribution.Name)"
 Invoke-WslCommand -Distribution $Distribution -User 'root' -Command 'ln -sf ../wsl2-xwayland.socket /etc/systemd/system/sockets.target.wants/'
 
+# Install ZSH
+Write-Output "--- Installing ZSH in $($Distribution.Name)"
+Invoke-WslScript -Distribution $Distribution -User 'root' -Script @'
+do_ubuntu() {
+    echo doing ubuntu
+    do_apt
+}
+do_kali() {
+    do_apt
+}
+do_apt() {
+    export DEBIAN_FRONTEND=noninteractive
+    apt-get update
+    apt-get install -yyq zsh
+}
+do_apk() {
+    apk update
+    apk add zsh
+}
+do_sles() {
+    do_zypper
+}
+do_zypper() {
+    zypper --non-interactive install zsh
+}
+if [ -f /etc/os-release ]; then
+    . /etc/os-release
+    case "$ID" in
+        "ubuntu")
+            do_ubuntu ;;
+        "kali")
+            do_kali ;;
+        "debian")
+            do_apt ;;
+        "alpine")
+            do_apk ;;
+        "sles")
+            do_sles ;;
+        *)
+            case "$ID_LIKE" in
+                *"debian"*)
+                    do_apt ;;
+                *"suse"*)
+                    do_zypper ;;
+                *)
+            esac
+            ;;
+    esac
+fi
+if command -v update-desktop-database >/dev/null; then
+    update-desktop-database
+fi
+'@
+Write-Output "--- Attempting to configure ZSH in $($Distribution.Name)"
+Invoke-WslScript -Distribution $Distribution -User 'root' -Script @'
+    if [ -f "/etc/zsh/zshenv" ]; then
+        ZSHENVFILE=/etc/zsh/zshenv
+    elif [ -f "/etc/zshenv" ]; then
+        ZSHENVFILE=/etc/zshenv
+    fi
+
+    if [ -n "$ZSHENVFILE" ]; then
+        if ! grep -q 00-wsl2-systemd.sh "$ZSHENVFILE"; then
+            sed -i "1iemulate sh -c 'source \/etc\/profile.d\/00-wsl2-systemd.sh'" "$ZSHENVFILE"
+        fi
+    else
+        echo "+++ Cannot find 'zshenv' file. ZSH is not configured for systemd."
+    fi
+'@
+
 # Update the desktop mime database
 Write-Output "--- Updating desktop-file MIME database in $($Distribution.Name)"
 Invoke-WslScript -Distribution $Distribution -User 'root' -Script @'
