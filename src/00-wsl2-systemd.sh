@@ -68,6 +68,8 @@ if [ -f "$HOME/.systemd.env" ]; then
         rm $HOME/.systemd.env
 fi
 
+cd "$PWD"
+
 if [ -d "$HOME/.wslprofile.d" ]; then
         for script in "$HOME/.wslprofile.d/"*; do
                 source "$script"
