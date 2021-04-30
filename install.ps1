@@ -11,9 +11,11 @@ param(
     [string]
     $User,
 
-    [Parameter(Mandatory=$false)]
-    [bool]
-    $NoGPG
+    [switch]
+    $NoGPG,
+
+    [switch]
+    $NoKernel
 )
 
 $PSDefaultParameterValues['*:Encoding'] = 'utf8'
@@ -185,7 +187,9 @@ function Add-WslFileContent {
     $bytes = [System.Text.Encoding]::UTF8.GetBytes($Content)
     $base64 = [Convert]::ToBase64String($bytes)
 
-    Invoke-WslCommand -Distribution $Distribution @commandArgs -Command "mkdir -p `"`$(dirname '$File')`" && echo $base64 | base64 -d > '$File'"
+    Invoke-WslScript -Distribution $Distribution @commandArgs -Script @"
+mkdir -p "`$(dirname '$File')" && echo $base64 | base64 -d > '$File'
+"@
 }
 
 function Add-WslFile {
@@ -467,7 +471,7 @@ Invoke-WslScript -Distribution $Distribution -User 'root' -Script @'
 
     if [ -n "$ZSHENVFILE" ]; then
         if ! grep -q 00-wsl2-systemd.sh "$ZSHENVFILE"; then
-            sed -i "1iemulate sh -c 'source \/etc\/profile.d\/00-wsl2-systemd.sh'" "$ZSHENVFILE"
+            sed -i "1i[ -f '\/etc\/profile.d\/00-wsl2-systemd.sh' ] && emulate sh -c 'source \/etc\/profile.d\/00-wsl2-systemd.sh'" "$ZSHENVFILE"
         fi
     else
         echo "+++ Cannot find 'zshenv' file. ZSH is not configured for systemd."
@@ -662,9 +666,17 @@ if ($NoGPG) {
 Write-Output '--- Adding a Windows scheduled tasks and starting services'
 
 $adminScript = "$env:TEMP\wsl2-systemd-services.ps1"
-$response = Invoke-WebRequest -Uri ($repoUrl + 'services.ps1') -OutFile $adminScript -PassThru -UseBasicParsing
+$response = Invoke-WebRequest -Uri "$repoUrl/services.ps1" -OutFile $adminScript -PassThru -UseBasicParsing
 if ($response.StatusCode -eq 200) {
-    Start-Process -Verb RunAs -Wait -FilePath powershell.exe -Args '-NonInteractive', '-ExecutionPolicy', 'ByPass', $adminScript
+    $CmdArgs = @()
+    if ($NoGPG) {
+        $CmdArgs += @('-NoGPG')
+    }
+    if ($NoKernel) {
+        $CmdArgs += @('-NoKernel')
+    }
+    Start-Process -Verb RunAs -Wait -FilePath powershell.exe -Args '-NonInteractive', '-ExecutionPolicy', 'ByPass', -Command "$adminScript $CmdArgs"
+    Remove-Item $adminScript
 } else {
     Write-Warning 'Could not fetch the script to set up your SSH & GPG Agents and update the custom WSL2 kernel'
 }
