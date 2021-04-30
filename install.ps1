@@ -84,6 +84,21 @@ $agentfiles = @{
 
 $npiperelayUrl = 'https://github.com/NZSmartie/npiperelay/releases/download/v0.1/npiperelay.exe'
 
+if ($PSVersionTable.PSVersion.Major -lt 6) {
+    $IsWindows = $true
+}
+
+if ($IsWindows) {
+    $wslPath = "$env:windir\system32\wsl.exe"
+    if (-not [System.Environment]::Is64BitProcess) {
+        # Allow launching WSL from 32 bit powershell
+        $wslPath = "$env:windir\sysnative\wsl.exe"
+    }
+} else {
+    # If running inside WSL, rely on wsl.exe being in the path.
+    $wslPath = "wsl.exe"
+}
+
 function Get-IniContent($filePath)
 {
     $ini = @{}
@@ -135,29 +150,52 @@ function Write-IniOutput($InputObject)
     }
 }
 
-function Invoke-WslScript {
-    [CmdletBinding()]
+function Invoke-WslCommand
+{
+    [CmdletBinding(SupportsShouldProcess=$true)]
     param(
-        [Parameter(Mandatory=$true, ValueFromPipeline=$true)]
+        [Parameter(Mandatory = $true, Position = 0)]
         [ValidateNotNullOrEmpty()]
-        [string]$Script,
-
-        [Parameter(Mandatory=$false)]
+        [string]$Command,
+        [Parameter(Mandatory = $false, ValueFromPipeline = $true, ParameterSetName = "DistributionName", Position = 1)]
+        [ValidateNotNullOrEmpty()]
+        [SupportsWildCards()]
+        [string[]]$DistributionName,
+        [Parameter(Mandatory = $true, ValueFromPipeline = $true, ParameterSetName = "Distribution")]
         [WslDistribution[]]$Distribution,
-
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false, Position = 2)]
+        [ValidateNotNullOrEmpty()]
         [string]$User
     )
 
-    $commandArgs = @{}
-    if ($User) {
-        $commandArgs = @{User = $User}
+    process {
+        if ($PSCmdlet.ParameterSetName -eq "DistributionName") {
+            if ($DistributionName) {
+                $Distribution = Get-WslDistribution $DistributionName
+            } else {
+                $Distribution = Get-WslDistribution -Default
+            }
+        }
+
+        $Distribution | ForEach-Object {
+            $wslargs = @("--distribution", $_.Name)
+            if ($User) {
+                $wslargs += @("--user", $User)
+            }
+
+            $Command = $Command + "`n" # Add a trailing new line
+            $Command = $Command.Replace("`r`n", "`n") # Replace Windows newlines with Unix ones
+            $Command += '#' # Add a comment on the last line to hide PowerShell cruft added to the end of the string
+
+            if ($PSCmdlet.ShouldProcess($_.Name, "Invoke Command")) {
+                $Command | &$wslPath @wslargs /bin/bash
+                if ($LASTEXITCODE -ne 0) {
+                    # Note: this could be the exit code of wsl.exe, or of the launched command.
+                    throw "Wsl.exe returned exit code $LASTEXITCODE"
+                }    
+            }
+        }
     }
-
-    $bytes = [System.Text.Encoding]::UTF8.GetBytes($Script.Replace("`r`n", "`n"))
-    $base64 = [Convert]::ToBase64String($bytes)
-
-    Invoke-WslCommand -Distribution $Distribution @commandArgs -Command "`$(echo $base64 | base64 -d)"
 }
 
 function Add-WslFileContent {
@@ -187,9 +225,10 @@ function Add-WslFileContent {
     $bytes = [System.Text.Encoding]::UTF8.GetBytes($Content)
     $base64 = [Convert]::ToBase64String($bytes)
 
-    Invoke-WslScript -Distribution $Distribution @commandArgs -Script @"
-mkdir -p "`$(dirname '$File')" && echo $base64 | base64 -d > '$File'
-"@
+    $Directory = ($File | Split-Path).Replace('\', '/')
+
+    $Command = "mkdir -p `"$Directory`" && echo '$base64' | base64 -d > `"$File`""
+    Invoke-WslCommand -Distribution $Distribution @commandArgs -Command $Command
 }
 
 function Add-WslFile {
@@ -281,7 +320,7 @@ function Add-WslFiles {
                 Write-Output "+++ Adding file `"${destfile}`" from `"$source`""
                 Add-WslFile -Distribution $Distribution -Path $source -File $destfile -Replacements $Replacements @commandArgs
             } catch {
-                write-output $_
+                Write-Output $_
                 if ($file.errorIsFatal) {
                     Abort-Installation -Distribution $Distribution
                     throw $file.errorMessage
@@ -410,7 +449,7 @@ Invoke-WslCommand -Distribution $Distribution -User 'root' -Command 'ln -sf ../w
 
 # Install ZSH
 Write-Output "--- Installing ZSH in $($Distribution.Name)"
-Invoke-WslScript -Distribution $Distribution -User 'root' -Script @'
+Invoke-WslCommand -Distribution $Distribution -User 'root' -Command @'
 do_ubuntu() {
     echo doing ubuntu
     do_apt
@@ -462,7 +501,7 @@ if command -v update-desktop-database >/dev/null; then
 fi
 '@
 Write-Output "--- Attempting to configure ZSH in $($Distribution.Name)"
-Invoke-WslScript -Distribution $Distribution -User 'root' -Script @'
+Invoke-WslCommand -Distribution $Distribution -User 'root' -Command @'
     if [ -f "/etc/zsh/zshenv" ]; then
         ZSHENVFILE=/etc/zsh/zshenv
     elif [ -f "/etc/zshenv" ]; then
@@ -480,7 +519,7 @@ Invoke-WslScript -Distribution $Distribution -User 'root' -Script @'
 
 # Update the desktop mime database
 Write-Output "--- Updating desktop-file MIME database in $($Distribution.Name)"
-Invoke-WslScript -Distribution $Distribution -User 'root' -Script @'
+Invoke-WslCommand -Distribution $Distribution -User 'root' -Command @'
 do_ubuntu() {
     do_apt
 }
@@ -532,7 +571,7 @@ fi
 '@
 
 Write-Output "--- Installing WSLUtilities in $($Distribution.Name)"
-Invoke-WslScript -Distribution $Distribution -User 'root' -Script @'
+Invoke-WslCommand -Distribution $Distribution -User 'root' -Command @'
 do_ubuntu() {
     export DEBIAN_FRONTEND=noninteractive
     add-apt-repository -y ppa:wslutilities/wslu
@@ -603,7 +642,7 @@ fi
 
 # Install socat for GPG and SSH agent forwarding
 Write-Output "--- Installing socat in $($Distribution.Name)"
-Invoke-WslScript -Distribution $Distribution -User 'root' -Script @'
+Invoke-WslCommand -Distribution $Distribution -User 'root' -Command @'
 do_ubuntu() {
     echo doing ubuntu
     do_apt
@@ -675,7 +714,7 @@ if ($response.StatusCode -eq 200) {
     if ($NoKernel) {
         $CmdArgs += @('-NoKernel')
     }
-    Start-Process -Verb RunAs -Wait -FilePath powershell.exe -Args '-NonInteractive', '-ExecutionPolicy', 'ByPass', -Command "$adminScript $CmdArgs"
+    Start-Process -Verb RunAs -Wait -FilePath powershell.exe -Args '-NonInteractive', '-ExecutionPolicy', 'ByPass', '-Command', "$adminScript $CmdArgs"
     Remove-Item $adminScript
 } else {
     Write-Warning 'Could not fetch the script to set up your SSH & GPG Agents and update the custom WSL2 kernel'
