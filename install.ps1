@@ -43,13 +43,6 @@ $agentfiles = @{
 
 $npiperelayUrl = 'https://github.com/NZSmartie/npiperelay/releases/download/v0.1/npiperelay.exe'
 
-[string[]]$wslparams = $null
-if ($Distro) {
-    $wslparams += '--distribution', $Distro
-} else {
-    $Distro = 'your default distro'
-}
-
 function Invoke-WslCommand($User, $Command) {
     $params = $wslparams
     if ($User) {
@@ -58,7 +51,6 @@ function Invoke-WslCommand($User, $Command) {
     $params += '-e', 'sh'
     "$Command`nexit;".Replace("`r`n", "`n") | & wsl.exe $params
 }
-
 function Add-WslFile($User, $Uri, $File, $Replacements) {
     if ($Uri -and $File) {
         $response = Invoke-WebRequest -Uri $Uri -UseBasicParsing
@@ -116,6 +108,21 @@ function Abort-Installation {
         Invoke-WslCommand -User $wslUser -Command "rm -f $remove"
     }
 }
+
+[string[]]$wslparams = $null
+if ($Distro) {
+    $wslparams += '--distribution', $Distro
+} else {
+    $Distro = 'your default distro'
+}
+
+if (-not $User) {
+    $User = $(Invoke-WslCommand -Command "whoami")
+}
+
+Write-Output "--- Ensuring $User is a sudoer in $Distro"
+Invoke-WslCommand -User 'root' -Command "usermod -a -G sudo $User 2>/dev/null"
+Invoke-WslCommand -User 'root' -Command "usermod -a -G wheel $User 2>/dev/null"
 
 Write-Output "--- Installing files in $Distro"
 Add-WslFiles -Files $files
