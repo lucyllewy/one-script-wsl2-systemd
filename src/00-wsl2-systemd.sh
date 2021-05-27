@@ -50,13 +50,14 @@ if [ -z "$SYSTEMD_PID" ] || [ "$SYSTEMD_PID" -ne 1 ]; then
 	fi
 
 	if [ -z "$DISPLAY" ]; then
-    if [ -f "/tmp/.X11-unix/X0" ]; then
-      echo "DISPLAY=:0" >> /etc/environment
-    else
-  		echo "DISPLAY=$(awk '/nameserver/ { print $2":0" }' /etc/resolv.conf)" >> /etc/environment
-    fi
+		if [ -f "/tmp/.X11-unix/X0" ]; then
+			echo "DISPLAY=:0" >> /etc/environment
+		else
+			echo "DISPLAY=$(awk '/nameserver/ { print $2":0" }' /etc/resolv.conf)" >> /etc/environment
+		fi
 	else
-		sed -i '/DISPLAY=.*/d' /etc/environment
+		sed -i "/DISPLAY=.*/d" /etc/environment
+		echo "DISPLAY='$DISPLAY'" >> /etc/environment
 	fi
 
 	if [ -z "$SYSTEMD_PID" ]; then
