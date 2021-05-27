@@ -161,7 +161,7 @@ function Invoke-WslCommand
         [ValidateNotNullOrEmpty()]
         [SupportsWildCards()]
         [string[]]$DistributionName,
-        [Parameter(Mandatory = $true, ValueFromPipeline = $true, ParameterSetName = "Distribution")]
+        [Parameter(Mandatory = $false, ValueFromPipeline = $true, ParameterSetName = "Distribution")]
         [WslDistribution[]]$Distribution,
         [Parameter(Mandatory = $false, Position = 2)]
         [ValidateNotNullOrEmpty()]
@@ -175,6 +175,8 @@ function Invoke-WslCommand
             } else {
                 $Distribution = Get-WslDistribution -Default
             }
+        } elseif ($PSCmdLet.ParameterSetName -ne "Distribution") {
+            $Distribution = Get-WslDistribution -Default
         }
 
         $Distribution | ForEach-Object {
@@ -390,7 +392,8 @@ if ($Distro) {
 }
 
 if (-not $User) {
-    $User = $(Invoke-WslCommand -Command "whoami")
+    Write-Output "--- Detecting default user in $Distro"
+    $User = Invoke-WslCommand -Command "whoami"
 }
 
 $params = @{User = $User}
