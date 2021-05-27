@@ -699,7 +699,9 @@ if ($NoGPG) {
     Write-Output 'Skipping Gpg4win installation'
 } else {
     Write-Output '--- Installing GPG4Win in Windows'
-    winget.exe install --silent gnupg.Gpg4win
+    try {
+        winget.exe install --silent gnupg.Gpg4win
+    } catch {}
 }
 
 Write-Output '--- Adding a Windows scheduled tasks and starting services'
@@ -714,8 +716,11 @@ if ($response.StatusCode -eq 200) {
     if ($NoKernel) {
         $CmdArgs += @('-NoKernel')
     }
-    Start-Process -Verb RunAs -Wait -FilePath powershell.exe -Args '-NonInteractive', '-ExecutionPolicy', 'ByPass', '-Command', "$adminScript $CmdArgs"
-    Remove-Item $adminScript
+    try {
+        Start-Process -Verb RunAs -Wait -FilePath powershell.exe -Args '-NonInteractive', '-ExecutionPolicy', 'ByPass', '-Command', "$adminScript $CmdArgs"
+    } finally {
+        Remove-Item $adminScript
+    }
 } else {
     Write-Warning 'Could not fetch the script to set up your SSH & GPG Agents and update the custom WSL2 kernel'
 }
