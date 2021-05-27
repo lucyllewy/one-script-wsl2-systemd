@@ -13,8 +13,8 @@ SYSTEMD_PID="$(ps -C systemd -o pid= | head -n1)"
 
 if [ -z "$SYSTEMD_PID" ] || [ "$SYSTEMD_PID" -ne 1 ]; then
 	if [ -z "$SUDO_USER" ]; then
-		[ -f "$HOME/.systemd.env" ] && rm $HOME/.systemd.env
-		export > $HOME/.systemd.env
+		[ -f "$HOME/.systemd.env" ] && rm "$HOME/.systemd.env"
+		export > "$HOME/.systemd.env"
 	fi
 
 	if [ "$USER" != "root" ]; then
@@ -49,6 +49,16 @@ if [ -z "$SYSTEMD_PID" ] || [ "$SYSTEMD_PID" -ne 1 ]; then
 		sed -i "s|WSL_INTEROP=.*|WSL_INTEROP='/run/WSL/$(ls -rv /run/WSL | head -n1)'|" /etc/environment
 	fi
 
+	if [ -z "$DISPLAY" ]; then
+    if [ -f "/tmp/.X11-unix/X0" ]; then
+      echo "DISPLAY=:0" >> /etc/environment
+    else
+  		echo "DISPLAY=$(awk '/nameserver/ { print $2":0" }' /etc/resolv.conf)" >> /etc/environment
+    fi
+	else
+		sed -i '/DISPLAY=.*/d' /etc/environment
+	fi
+
 	if [ -z "$SYSTEMD_PID" ]; then
 		env -i /usr/bin/unshare --fork --mount-proc --pid -- sh -c "
 			mount -t binfmt_misc binfmt_misc /proc/sys/fs/binfmt_misc
@@ -72,7 +82,7 @@ unset SYSTEMD_PID
 
 if [ -f "$HOME/.systemd.env" ]; then
 	source "$HOME/.systemd.env"
-	rm $HOME/.systemd.env
+	rm "$HOME/.systemd.env"
 fi
 
 cd "$PWD"

@@ -389,13 +389,18 @@ if ($Distro) {
     Write-Output "--- No distro specified, using your default distro $($Distribution.Name)"
 }
 
-$params = @{}
-if ($User) {
-    $params = @{User = $User}
+if (-not $User) {
+    $User = $(Invoke-WslCommand -Command "whoami")
 }
 
+$params = @{User = $User}
+
+Write-Output "--- Ensuring $User is a sudoer in $Distro"
+Invoke-WslCommand -User 'root' -Command "usermod -a -G sudo $User 2>/dev/null"
+Invoke-WslCommand -User 'root' -Command "usermod -a -G wheel $User 2>/dev/null"
+
 Write-Output "--- Installing files in $($Distribution.Name)"
-Add-WslFiles -Distribution $Distribution -Files $files
+Add-WslFiles -Distribution $Distribution -Files $files @params
 
 Write-Output "--- Setting systemd to automatically start in $($Distribution.Name)"
 $wslconfig = @{}
