@@ -84,11 +84,7 @@ $agentfiles = @{
 
 $npiperelayUrl = 'https://github.com/NZSmartie/npiperelay/releases/download/v0.1/npiperelay.exe'
 
-if ($PSVersionTable.PSVersion.Major -lt 6) {
-    $IsWindows = $true
-}
-
-if ($IsWindows) {
+if ($IsWindows -or $PSVersionTable.PSVersion.Major -lt 6) {
     $wslPath = "$env:windir\system32\wsl.exe"
     if (-not [System.Environment]::Is64BitProcess) {
         # Allow launching WSL from 32 bit powershell
