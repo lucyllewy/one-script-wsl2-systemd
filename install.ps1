@@ -153,12 +153,14 @@ function Invoke-WslCommand
         [Parameter(Mandatory = $true, Position = 0)]
         [ValidateNotNullOrEmpty()]
         [string]$Command,
+
         [Parameter(Mandatory = $false, ValueFromPipeline = $true, ParameterSetName = "DistributionName", Position = 1)]
-        [ValidateNotNullOrEmpty()]
         [SupportsWildCards()]
         [string[]]$DistributionName,
+
         [Parameter(Mandatory = $false, ValueFromPipeline = $true, ParameterSetName = "Distribution")]
         [WslDistribution[]]$Distribution,
+
         [Parameter(Mandatory = $false, Position = 2)]
         [ValidateNotNullOrEmpty()]
         [string]$User
@@ -451,6 +453,57 @@ Invoke-WslCommand -Distribution $Distribution -User 'root' -Command 'ln -sf /dev
 Write-Output "--- Enabling custom systemd services in $($Distribution.Name)"
 Invoke-WslCommand -Distribution $Distribution -User 'root' -Command 'ln -sf ../wsl2-xwayland.socket /etc/systemd/system/sockets.target.wants/'
 
+# Install systemd-container for access to machinectl
+Write-Output "--- Installing systemd-container in $($Distribution.Name)"
+Invoke-WslCommand -Distribution $Distribution -User 'root' -Command @'
+do_ubuntu() {
+    echo doing ubuntu
+    do_apt
+}
+do_kali() {
+    do_apt
+}
+do_apt() {
+    export DEBIAN_FRONTEND=noninteractive
+    apt-get update
+    apt-get install -yyq systemd-container
+}
+do_apk() {
+    apk update
+    apk add systemd-container
+}
+do_sles() {
+    do_zypper
+}
+do_zypper() {
+    zypper --non-interactive install systemd-container
+}
+if [ -f /etc/os-release ]; then
+    . /etc/os-release
+    case "$ID" in
+        "ubuntu")
+            do_ubuntu ;;
+        "kali")
+            do_kali ;;
+        "debian")
+            do_apt ;;
+        "alpine")
+            do_apk ;;
+        "sles")
+            do_sles ;;
+        *)
+            case "$ID_LIKE" in
+                *"debian"*)
+                    do_apt ;;
+                *"suse"*)
+                    do_zypper ;;
+                *)
+            esac
+            ;;
+    esac
+fi
+'@
+
 # Install ZSH
 Write-Output "--- Installing ZSH in $($Distribution.Name)"
 Invoke-WslCommand -Distribution $Distribution -User 'root' -Command @'
@@ -499,9 +552,6 @@ if [ -f /etc/os-release ]; then
             esac
             ;;
     esac
-fi
-if command -v update-desktop-database >/dev/null; then
-    update-desktop-database
 fi
 '@
 Write-Output "--- Attempting to configure ZSH in $($Distribution.Name)"
@@ -692,9 +742,6 @@ if [ -f /etc/os-release ]; then
             esac
             ;;
     esac
-fi
-if command -v update-desktop-database >/dev/null; then
-    update-desktop-database
 fi
 '@
 
