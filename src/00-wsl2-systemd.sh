@@ -61,7 +61,7 @@ if [ -z "$SYSTEMD_PID" ] || [ "$SYSTEMD_PID" -ne 1 ]; then
 	fi
 
 	if [ -z "$SYSTEMD_PID" ]; then
-		env -i /usr/bin/unshare --fork --mount-proc --pid -- sh -c "
+		env -i /usr/bin/unshare --fork --mount-proc --pid --propagation shared -- sh -c "
 			mount -t binfmt_misc binfmt_misc /proc/sys/fs/binfmt_misc
 			exec $SYSTEMD_EXE
 			" &
@@ -69,13 +69,13 @@ if [ -z "$SYSTEMD_PID" ] || [ "$SYSTEMD_PID" -ne 1 ]; then
 			SYSTEMD_PID="$(ps -C systemd -o pid= | head -n1)"
 			sleep 1
 		done
+
+		while [ "$(/usr/bin/nsenter --mount --pid --target "$SYSTEMD_PID" -- systemctl is-system-running)" = "starting" ]; do
+			sleep 1
+		done
 	fi
 
-	if [ -n "$WSL_SYSTEMD_EXECUTION_ARGS" ]; then
-		exec /usr/bin/nsenter --mount --pid --target "$SYSTEMD_PID" -- $WSL_SYSTEMD_EXECUTION_ARGS
-	else
-		exec /usr/bin/nsenter --mount --pid --target "$SYSTEMD_PID" -- login -f "$SUDO_USER"
-	fi
+	exec /usr/bin/nsenter --mount --pid --target "$SYSTEMD_PID" -- machinectl shell -q "$SUDO_USER"@.host $WSL_SYSTEMD_EXECUTION_ARGS
 fi
 
 unset SYSTEMD_EXE
