@@ -26,7 +26,7 @@ If you are using Windows Insider builds greater than 21286 you should use the [`
 1. Run `Install-Module -Scope CurrentUser Wsl` to install the required PowerShell module
 1. Download the `install.ps1` script
 1. Open a PowerShell or CMD window: press `Win + x` then choose either "Command Prompt" or "Windows PowerShell" depending on which your system presents in the menu
-1. Run the following command in the PowerShell or CMD window to set up your default distro
+1. Run the following command in the PowerShell or CMD window to set up your default distro (make sure to replace `powershell.exe` with `pwsh.exe` if you're using PowerShell Core):
     ```powershell
     powershell.exe -NonInteractive -NoProfile -ExecutionPolicy Bypass -File \path\to\install.ps1
     ```
