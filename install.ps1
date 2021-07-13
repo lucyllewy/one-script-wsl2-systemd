@@ -403,6 +403,7 @@ Invoke-WslCommand -User 'root' -Command "usermod -a -G sudo $User 2>/dev/null"
 Invoke-WslCommand -User 'root' -Command "usermod -a -G wheel $User 2>/dev/null"
 
 Write-Output "--- Installing files in $($Distribution.Name)"
+Invoke-WslCommand -Command 'mkdir -p $HOME/.ssh'
 Add-WslFiles -Distribution $Distribution -Files $files @params
 
 Write-Output "--- Setting systemd to automatically start in $($Distribution.Name)"
