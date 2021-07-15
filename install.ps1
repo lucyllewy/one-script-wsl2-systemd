@@ -84,6 +84,8 @@ $agentfiles = @{
 
 $npiperelayUrl = 'https://github.com/NZSmartie/npiperelay/releases/download/v0.1/npiperelay.exe'
 
+$powershellProcess = (Get-Process -Id $PID).ProcessName + '.exe'
+
 if ($IsWindows -or $PSVersionTable.PSVersion.Major -lt 6) {
     $wslPath = "$env:windir\system32\wsl.exe"
     if (-not [System.Environment]::Is64BitProcess) {
@@ -401,6 +403,7 @@ Invoke-WslCommand -User 'root' -Command "usermod -a -G sudo $User 2>/dev/null"
 Invoke-WslCommand -User 'root' -Command "usermod -a -G wheel $User 2>/dev/null"
 
 Write-Output "--- Installing files in $($Distribution.Name)"
+Invoke-WslCommand -Command 'mkdir -p $HOME/.ssh'
 Add-WslFiles -Distribution $Distribution -Files $files @params
 
 Write-Output "--- Setting systemd to automatically start in $($Distribution.Name)"
@@ -768,7 +771,7 @@ if ($response.StatusCode -eq 200) {
         $CmdArgs += @('-NoKernel')
     }
     try {
-        Start-Process -Verb RunAs -Wait -FilePath powershell.exe -Args '-NonInteractive', '-ExecutionPolicy', 'ByPass', '-Command', "$adminScript $CmdArgs"
+        Start-Process -Verb RunAs -Wait -FilePath $powershellProcess -Args '-NonInteractive', '-ExecutionPolicy', 'ByPass', '-Command', "$adminScript $CmdArgs"
     } finally {
         Remove-Item $adminScript
     }
@@ -778,5 +781,5 @@ if ($response.StatusCode -eq 200) {
 
 Write-Output "`nDone."
 Write-Output "If you want to go back to the Microsoft kernel open a PowerShell or CMD window and run:"
-Write-Output "`n`tpowershell.exe -NonInteractive -NoProfile -Command 'Start-Process' -Verb RunAs -FilePath powershell.exe -ArgumentList { Unregister-ScheduledJob -Name UpdateWSL2CustomKernel }"
+Write-Output "`n`t$powershellProcess -NonInteractive -NoProfile -Command 'Start-Process' -Verb RunAs -FilePath $powershellProcess -ArgumentList { Unregister-ScheduledJob -Name UpdateWSL2CustomKernel }"
 Write-Output "`n"
