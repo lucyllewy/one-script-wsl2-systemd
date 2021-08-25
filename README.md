@@ -26,16 +26,16 @@ If you are using Windows Insider builds greater than 21286 you should use the [`
 1. Run `Install-Module -Scope CurrentUser Wsl` to install the required PowerShell module
 1. Download the `install.ps1` script
 1. Open a PowerShell or CMD window: press `Win + x` then choose either "Command Prompt" or "Windows PowerShell" depending on which your system presents in the menu
-1. Run the following command in the PowerShell or CMD window to set up your default distro (make sure to replace `powershell.exe` with `pwsh.exe` if you're using PowerShell Core):
+1. Run the following command in the PowerShell Core or CMD window to set up your default distro (make sure to replace `powershell.exe` with `pwsh.exe` if you're using PowerShell Core):
     ```powershell
-    powershell.exe -NonInteractive -NoProfile -ExecutionPolicy Bypass -File \path\to\install.ps1
+    pwsh.exe -NonInteractive -NoProfile -ExecutionPolicy Bypass -File \path\to\install.ps1
     ```
 If you want to skip the GPG4Win installation, use the flag `-NoGPG`
 
 You can also specify a distro name with the `-distro` flag, e.g:
 
 ```powershell
-powershell.exe -NonInteractive -NoProfile -ExecutionPolicy Bypass -File \path\to\install.ps1 -distro Ubuntu-20.04
+pwsh.exe -NonInteractive -NoProfile -ExecutionPolicy Bypass -File \path\to\install.ps1 -distro Ubuntu-20.04
 ```
 You will find all the available distros on your system when executing `wsl.exe --list --all` in command prompt
 
@@ -45,7 +45,7 @@ Currently supported distros:
 - Debian
 - Alpine
 - OpenSUSE
-- Any other linux distribution with `apt-get` or `zypper` as packet manager
+- Any other linux distribution with `apt-get` or `zypper` as package manager
 
 ## Minimal manual installation
 
