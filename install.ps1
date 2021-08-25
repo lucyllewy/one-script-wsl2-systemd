@@ -261,7 +261,7 @@ function Add-WslFile {
     if ($Path -and $File) {
         $Content = ""
         if ($Path.StartsWith("http://") -or $Path.StartsWith("https://")) {
-            Write-Output "*** Downloading $Path"
+            Write-Debug "*** Downloading $Path"
             $response = Invoke-WebRequest -Uri $Path -UseBasicParsing
             if ($response.StatusCode -eq 200) {
                 if ($response.Headers['Content-Type'] -eq 'application/octet-stream') {
@@ -270,7 +270,7 @@ function Add-WslFile {
                     $Content = $response.Content
                 }
             } else {
-                Write-Output $response.StatusCode
+                Write-Error $response.StatusCode
                 throw
             }
         }
@@ -319,15 +319,15 @@ function Add-WslFiles {
                 } elseif ($User) {
                     $commandArgs = @{User = $User}
                 }
-                Write-Output "+++ Adding file `"${destfile}`" from `"$source`""
+                Write-Debug "+++ Adding file `"${destfile}`" from `"$source`""
                 Add-WslFile -Distribution $Distribution -Path $source -File $destfile -Replacements $Replacements @commandArgs
             } catch {
-                Write-Output $_
+                Write-Error $_
                 if ($file.errorIsFatal) {
                     Abort-Installation -Distribution $Distribution
                     throw $file.errorMessage
                 } else {
-                    Write-Warning -Message $file.errorMessage
+                    Write-Error -Message $file.errorMessage
                 }
             }
         }
@@ -376,37 +376,71 @@ function Abort-Installation {
     $agentfiles.values | Remove-WslFiles -Distribution $Distribution
 }
 
+function Format-Hyperlink {
+    param(
+        [Parameter(ValueFromPipeline = $true, Position = 0)]
+        [ValidateNotNullOrEmpty()]
+        [Uri] $Uri,
+
+        [Parameter(Mandatory=$false, Position = 1)]
+        [string] $Label
+    )
+
+    if ($Label) {
+        return "`e]8;;$Uri`e\$Label`e]8;;`e\"
+    }
+
+    return "$Uri"
+}
+
+Write-Output "`r`n`n"
+Write-Output "#########################################################"
+Write-Output "#                                                       #"
+Write-Output "#       One Script WSL2 Systemd enablement script       #"
+Write-Output "#                                                       #"
+Write-Output "#########################################################`n`n"
+
+Write-Output "If you encounter issues, please rerun with ``-Debug``, then"
+Write-Output "$(Format-Hyperlink -Uri "https://github.com/diddledani/one-script-wsl2-systemd/issues/new/choose" -Label "hold ctrl and click this link to file an issue...")`n`n"
+
+Write-Output "---------------------------------------------------------`n`n"
+
 if ($Distro) {
     $Distribution = Get-WslDistribution -Name $Distro | Select-Object -first 1
     if (-not $Distribution) {
-        Write-Output "!!! $Distro is not currently installed. Refusing to continue."
+        Write-Error "!!! $Distro is not currently installed. Refusing to continue."
         exit
     }
 } else {
     $Distribution = Get-WslDistribution -Default | Select-Object -first 1
     if (-not $Distribution) {
-        Write-Output "!!! $Distro is not currently installed, and you do not have a default distribution. Refusing to continue."
+        Write-Error "!!! $Distro is not currently installed, and you do not have a default distribution. Refusing to continue."
         exit
     }
-    Write-Output "--- No distro specified, using your default distro $($Distribution.Name)"
+    Write-Debug "--- No distro specified, using your default distro $($Distribution.Name)"
 }
 
 if (-not $User) {
-    Write-Output "--- Detecting default user in $Distro"
-    $User = Invoke-WslCommand -Command "whoami"
+    Write-Debug "--- Detecting default user in $Distro"
+    try {
+        $User = Invoke-WslCommand -Distribution $Distribution -Command "whoami"
+    } catch {
+        Write-Error "Cannot detect username of your account in $Distribution. Aborting."
+        exit
+    }
 }
 
 $params = @{User = $User}
 
-Write-Output "--- Ensuring $User is a sudoer in $Distro"
-Invoke-WslCommand -User 'root' -Command "usermod -a -G sudo $User 2>/dev/null"
-Invoke-WslCommand -User 'root' -Command "usermod -a -G wheel $User 2>/dev/null"
+Write-Debug "--- Ensuring $User is a sudoer in $Distro"
+Invoke-WslCommand -Distribution $Distribution -User 'root' -Command "groupadd --system sudo 2>/dev/null" -ErrorAction SilentlyContinue
+Invoke-WslCommand -Distribution $Distribution -User 'root' -Command "usermod -a -G sudo $User 2>/dev/null" -ErrorAction SilentlyContinue
 
-Write-Output "--- Installing files in $($Distribution.Name)"
-Invoke-WslCommand -Command 'mkdir -p $HOME/.ssh'
+Write-Debug "--- Installing files in $($Distribution.Name)"
+Invoke-WslCommand -Distribution $Distribution -Command 'mkdir -p $HOME/.ssh'
 Add-WslFiles -Distribution $Distribution -Files $files @params
 
-Write-Output "--- Setting systemd to automatically start in $($Distribution.Name)"
+Write-Debug "--- Setting systemd to automatically start in $($Distribution.Name)"
 $wslconfig = @{}
 if (Test-Path("$($Distribution.FileSystemPath)\etc\wsl.conf")) {
     $wslconfig = Get-IniContent "$($Distribution.FileSystemPath)\etc\wsl.conf"
@@ -421,7 +455,7 @@ $wslconfig.boot.command = "/usr/bin/env -i /usr/bin/unshare --fork --mount-proc 
 (Write-IniOutput $wslconfig) -Join "`n" | Add-WslFileContent -Distribution $Distribution -User "root" -File "/etc/wsl.conf"
 
 # Fetch agent sockets relay
-Write-Output "--- Installing SSH, GPG, etc. agent scripts in $($Distribution.Name)"
+Write-Debug "--- Installing SSH, GPG, etc. agent scripts in $($Distribution.Name)"
 $gpgsock = "$env:APPDATA\gnupg\S.gpg-agent".replace('\', '/')
 $relayexe = "$env:APPDATA\wsl2-ssh-gpg-agent-relay.exe".replace('\', '/')
 $relayResponse = Invoke-WebRequest -Uri $npiperelayUrl -UseBasicParsing -OutFile $relayexe -PassThru
@@ -434,7 +468,7 @@ if ($relayResponse.StatusCode -eq 200) {
 }
 
 # Disable some systemd units that conflict with our setup
-Write-Output "--- Disabling conflicting systemd services in $($Distribution.Name)"
+Write-Debug "--- Disabling conflicting systemd services in $($Distribution.Name)"
 Invoke-WslCommand -Distribution $Distribution -User 'root' -Command 'ln -sf /dev/null /etc/systemd/user/dirmngr.service'
 Invoke-WslCommand -Distribution $Distribution -User 'root' -Command 'ln -sf /dev/null /etc/systemd/user/dirmngr.socket'
 Invoke-WslCommand -Distribution $Distribution -User 'root' -Command 'ln -sf /dev/null /etc/systemd/user/gpg-agent.service'
@@ -453,63 +487,12 @@ Invoke-WslCommand -Distribution $Distribution -User 'root' -Command 'ln -sf /dev
 Invoke-WslCommand -Distribution $Distribution -User 'root' -Command 'ln -sf /dev/null /etc/systemd/system/systemd-networkd-wait-online.service'
 Invoke-WslCommand -Distribution $Distribution -User 'root' -Command 'ln -sf /dev/null /etc/systemd/system/systemd-resolved.service'
 
-Write-Output "--- Enabling custom systemd services in $($Distribution.Name)"
+Write-Debug "--- Enabling custom systemd services in $($Distribution.Name)"
 Invoke-WslCommand -Distribution $Distribution -User 'root' -Command 'ln -sf ../wsl2-xwayland.socket /etc/systemd/system/sockets.target.wants/'
 
-# Install systemd-container for access to machinectl
-Write-Output "--- Installing systemd-container in $($Distribution.Name)"
-Invoke-WslCommand -Distribution $Distribution -User 'root' -Command @'
-do_ubuntu() {
-    echo doing ubuntu
-    do_apt
-}
-do_kali() {
-    do_apt
-}
-do_apt() {
-    export DEBIAN_FRONTEND=noninteractive
-    apt-get update
-    apt-get install -yyq systemd-container
-}
-do_apk() {
-    apk update
-    apk add systemd-container
-}
-do_sles() {
-    do_zypper
-}
-do_zypper() {
-    zypper --non-interactive install systemd-container
-}
-if [ -f /etc/os-release ]; then
-    . /etc/os-release
-    case "$ID" in
-        "ubuntu")
-            do_ubuntu ;;
-        "kali")
-            do_kali ;;
-        "debian")
-            do_apt ;;
-        "alpine")
-            do_apk ;;
-        "sles")
-            do_sles ;;
-        *)
-            case "$ID_LIKE" in
-                *"debian"*)
-                    do_apt ;;
-                *"suse"*)
-                    do_zypper ;;
-                *)
-            esac
-            ;;
-    esac
-fi
-'@
-
 # Install ZSH
-Write-Output "--- Installing ZSH in $($Distribution.Name)"
-Invoke-WslCommand -Distribution $Distribution -User 'root' -Command @'
+Write-Debug "--- Installing ZSH in $($Distribution.Name)"
+Invoke-WslCommand -ErrorAction SilentlyContinue -Distribution $Distribution -User 'root' -Command @'
 do_ubuntu() {
     echo doing ubuntu
     do_apt
@@ -557,8 +540,8 @@ if [ -f /etc/os-release ]; then
     esac
 fi
 '@
-Write-Output "--- Attempting to configure ZSH in $($Distribution.Name)"
-Invoke-WslCommand -Distribution $Distribution -User 'root' -Command @'
+Write-Debug "--- Attempting to configure ZSH in $($Distribution.Name)"
+Invoke-WslCommand -ErrorAction SilentlyContinue -Distribution $Distribution -User 'root' -Command @'
     if [ -f "/etc/zsh/zshenv" ]; then
         ZSHENVFILE=/etc/zsh/zshenv
     elif [ -f "/etc/zshenv" ]; then
@@ -575,8 +558,8 @@ Invoke-WslCommand -Distribution $Distribution -User 'root' -Command @'
 '@
 
 # Update the desktop mime database
-Write-Output "--- Updating desktop-file MIME database in $($Distribution.Name)"
-Invoke-WslCommand -Distribution $Distribution -User 'root' -Command @'
+Write-Debug "--- Updating desktop-file MIME database in $($Distribution.Name)"
+Invoke-WslCommand -ErrorAction SilentlyContinue -Distribution $Distribution -User 'root' -Command @'
 do_ubuntu() {
     do_apt
 }
@@ -627,8 +610,8 @@ if command -v update-desktop-database >/dev/null; then
 fi
 '@
 
-Write-Output "--- Installing WSLUtilities in $($Distribution.Name)"
-Invoke-WslCommand -Distribution $Distribution -User 'root' -Command @'
+Write-Debug "--- Installing WSLUtilities in $($Distribution.Name)"
+Invoke-WslCommand -ErrorAction SilentlyContinue -Distribution $Distribution -User 'root' -Command @'
 do_ubuntu() {
     export DEBIAN_FRONTEND=noninteractive
     add-apt-repository -y ppa:wslutilities/wslu
@@ -661,7 +644,7 @@ do_apk() {
 do_sles() {
     SLESCUR_VERSION="$(grep VERSION= /etc/os-release | sed -e s/VERSION=//g -e s/\"//g -e s/-/_/g)"
     sudo zypper addrepo https://download.opensuse.org/repositories/home:/wslutilities/SLE_$SLESCUR_VERSION/home:wslutilities.repo
-    sudo zypper addrepo https://download.opensuse.org/repositories/graphics/SLE_12_SP3_Backports/graphics.repo
+    sudo zypper addrepo https://download.opensuse.org/repositories/graphics/SLE_$SLESCUR_VERSION/graphics.repo
     zypper --non-interactive --no-gpg-checks install wslu
 }
 do_zypper() {
@@ -698,8 +681,8 @@ fi
 '@
 
 # Install socat for GPG and SSH agent forwarding
-Write-Output "--- Installing socat in $($Distribution.Name)"
-Invoke-WslCommand -Distribution $Distribution -User 'root' -Command @'
+Write-Debug "--- Installing socat in $($Distribution.Name)"
+Invoke-WslCommand -ErrorAction SilentlyContinue -Distribution $Distribution -User 'root' -Command @'
 do_ubuntu() {
     echo doing ubuntu
     do_apt
@@ -750,15 +733,15 @@ fi
 
 # Install GPG4Win
 if ($NoGPG) {
-    Write-Output 'Skipping Gpg4win installation'
+    Write-Debug 'Skipping Gpg4win installation'
 } else {
-    Write-Output '--- Installing GPG4Win in Windows'
+    Write-Debug '--- Installing GPG4Win in Windows'
     try {
         winget.exe install --silent gnupg.Gpg4win
     } catch {}
 }
 
-Write-Output '--- Adding a Windows scheduled tasks and starting services'
+Write-Debug '--- Adding a Windows scheduled tasks and starting services'
 
 $adminScript = "$env:TEMP\wsl2-systemd-services.ps1"
 $response = Invoke-WebRequest -Uri "$repoUrl/services.ps1" -OutFile $adminScript -PassThru -UseBasicParsing
@@ -772,14 +755,15 @@ if ($response.StatusCode -eq 200) {
     }
     try {
         Start-Process -Verb RunAs -Wait -FilePath $powershellProcess -Args '-NonInteractive', '-ExecutionPolicy', 'ByPass', '-Command', "$adminScript $CmdArgs"
-    } finally {
-        Remove-Item $adminScript
-    }
+    } catch {}
+    Remove-Item $adminScript
 } else {
     Write-Warning 'Could not fetch the script to set up your SSH & GPG Agents and update the custom WSL2 kernel'
 }
 
 Write-Output "`nDone."
-Write-Output "If you want to go back to the Microsoft kernel open a PowerShell or CMD window and run:"
-Write-Output "`n`t$powershellProcess -NonInteractive -NoProfile -Command 'Start-Process' -Verb RunAs -FilePath $powershellProcess -ArgumentList { Unregister-ScheduledJob -Name UpdateWSL2CustomKernel }"
+if (-not $NoKernel) {
+    Write-Output "If you want to go back to the Microsoft kernel open a PowerShell or CMD window and run:"
+    Write-Output "`n`t$powershellProcess -NonInteractive -NoProfile -Command 'Start-Process' -Verb RunAs -FilePath $powershellProcess -ArgumentList { Unregister-ScheduledJob -Name UpdateWSL2CustomKernel }"
+}
 Write-Output "`n"
