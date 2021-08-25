@@ -86,15 +86,11 @@ $npiperelayUrl = 'https://github.com/NZSmartie/npiperelay/releases/download/v0.1
 
 $powershellProcess = (Get-Process -Id $PID).ProcessName + '.exe'
 
-if ($IsWindows -or $PSVersionTable.PSVersion.Major -lt 6) {
-    $wslPath = "$env:windir\system32\wsl.exe"
-    if (-not [System.Environment]::Is64BitProcess) {
-        # Allow launching WSL from 32 bit powershell
-        $wslPath = "$env:windir\sysnative\wsl.exe"
-    }
+if (-not [System.Environment]::Is64BitProcess) {
+    # Allow launching WSL from 32 bit powershell
+    $wslPath = "$env:windir\sysnative\wsl.exe"
 } else {
-    # If running inside WSL, rely on wsl.exe being in the path.
-    $wslPath = "wsl.exe"
+    $wslPath = "$env:windir\system32\wsl.exe"
 }
 
 function Get-IniContent($filePath)
@@ -400,18 +396,27 @@ Write-Output "#       One Script WSL2 Systemd enablement script       #"
 Write-Output "#                                                       #"
 Write-Output "#########################################################`n`n"
 
-if (-not $Env:WT_SESSION -and -not -not $(where.exe wt.exe)) {
-    Write-Output "Relaunching in Windows Terminal"
-    if (-not -not $(where.exe pwsh.exe)) {
-        wt.exe new-tab --startingDirectory=$PWD pwsh.exe -NoExit -NonInteractive -NoProfile $MyInvocation.Line
-    } elseif ($PSVersionTable.PSEdition -ne "Core") {
-        Write-Output "This script requires PowerShell Core for correct operation. Please re-execute this script inside a PowerShell Core Session.`n"
-        Write-Output "If you do not currently have PowerShell Core installed, see the Microsoft Documentation for instructions to install it: https://docs.microsoft.com/en-us/powershell/scripting/install/installing-powershell-core-on-windows"
+function Write-PowerShellMsg {
+    Write-Output "This script requires PowerShell Core for correct operation. See the Microsoft Documentation for instructions to install PowerShell Core: https://docs.microsoft.com/en-us/powershell/scripting/install/installing-powershell-core-on-windows"
+}
+
+if (-not $Env:WT_SESSION) {
+    if (-not -not $(where.exe wt.exe)) {
+        Write-Output "Relaunching in Windows Terminal"
+        if (-not -not $(where.exe pwsh.exe)) {
+            wt.exe new-tab --startingDirectory=$PWD pwsh.exe -NoExit -NonInteractive -NoProfile $MyInvocation.Line
+        } elseif ($PSVersionTable.PSEdition -ne "Core") {
+            Write-PowerShellMsg
+        }
+        exit
+    } else {
+        Write-Output "The output of this script requires that PowerShell be hosted inside Windows Terminal. Please install Windows Terminal from the Windows Store if it is not already installed, open a new PowerShell Core session in Windows Terminal, and re-run this script there."
         exit
     }
-    exit
-} elseif (-not $Env:WT_SESSION) {
-    Write-Output "The output of this script requires that PowerShell be hosted inside Windows Terminal. Please install Windows Terminal from the Windows Store if it is not already installed, open a new PowerShell Core session in Windows Terminal, and re-run this script there."
+}
+
+if ($PSVersionTable.PSEdition -ne "Core") {
+    Write-PowerShellMsg
     exit
 }
 
