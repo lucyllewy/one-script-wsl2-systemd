@@ -400,8 +400,27 @@ Write-Output "#       One Script WSL2 Systemd enablement script       #"
 Write-Output "#                                                       #"
 Write-Output "#########################################################`n`n"
 
-Write-Output "If you encounter issues, please rerun with ``-Debug``, then"
-Write-Output "$(Format-Hyperlink -Uri "https://github.com/diddledani/one-script-wsl2-systemd/issues/new/choose" -Label "hold ctrl and click this link to file an issue...")`n`n"
+if (-not $Env:WT_SESSION -and -not -not $(where.exe wt.exe)) {
+    Write-Output "Relaunching in Windows Terminal"
+    if (-not -not $(where.exe pwsh.exe)) {
+        wt.exe new-tab --startingDirectory=$PWD pwsh.exe -NoExit -NonInteractive -NoProfile $MyInvocation.Line
+    } elseif ($PSVersionTable.PSEdition -ne "Core") {
+        Write-Output "This script requires PowerShell Core for correct operation. Please re-execute this script inside a PowerShell Core Session.`n"
+        Write-Output "If you do not currently have PowerShell Core installed, see the Microsoft Documentation for instructions to install it: https://docs.microsoft.com/en-us/powershell/scripting/install/installing-powershell-core-on-windows"
+        exit
+    }
+    exit
+} elseif (-not $Env:WT_SESSION) {
+    Write-Output "The output of this script requires that PowerShell be hosted inside Windows Terminal. Please install Windows Terminal from the Windows Store if it is not already installed, open a new PowerShell Core session in Windows Terminal, and re-run this script there."
+    exit
+}
+
+if (-not $IsWindows) {
+    Write-Output "This script must be run in Windows."
+    exit
+}
+
+Write-Output "If you encounter issues, please rerun the script with ``-Debug``, then $(Format-Hyperlink -Uri "https://github.com/diddledani/one-script-wsl2-systemd/issues/new/choose" -Label "hold ctrl and click this link to file an issue...")`n`n"
 
 Write-Output "---------------------------------------------------------`n`n"
 
@@ -494,7 +513,6 @@ Invoke-WslCommand -Distribution $Distribution -User 'root' -Command 'ln -sf ../w
 Write-Debug "--- Installing ZSH in $($Distribution.Name)"
 Invoke-WslCommand -ErrorAction SilentlyContinue -Distribution $Distribution -User 'root' -Command @'
 do_ubuntu() {
-    echo doing ubuntu
     do_apt
 }
 do_kali() {
@@ -684,7 +702,6 @@ fi
 Write-Debug "--- Installing socat in $($Distribution.Name)"
 Invoke-WslCommand -ErrorAction SilentlyContinue -Distribution $Distribution -User 'root' -Command @'
 do_ubuntu() {
-    echo doing ubuntu
     do_apt
 }
 do_kali() {
@@ -734,11 +751,13 @@ fi
 # Install GPG4Win
 if ($NoGPG) {
     Write-Debug 'Skipping Gpg4win installation'
-} else {
+} elseif (-not -not $(where.exe winget.exe)) {
     Write-Debug '--- Installing GPG4Win in Windows'
     try {
         winget.exe install --silent gnupg.Gpg4win
     } catch {}
+} else {
+    Write-Debug 'Cannot find winget.exe. Skipping Gpg4Win installation'
 }
 
 Write-Debug '--- Adding a Windows scheduled tasks and starting services'
@@ -767,3 +786,4 @@ if (-not $NoKernel) {
     Write-Output "`n`t$powershellProcess -NonInteractive -NoProfile -Command 'Start-Process' -Verb RunAs -FilePath $powershellProcess -ArgumentList { Unregister-ScheduledJob -Name UpdateWSL2CustomKernel }"
 }
 Write-Output "`n"
+Write-Output "You may now close this window..."
