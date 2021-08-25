@@ -320,7 +320,7 @@ function Add-WslFiles {
             } catch {
                 Write-Error $_
                 if ($file.errorIsFatal) {
-                    Abort-Installation -Distribution $Distribution
+                    Remove-Installation -Distribution $Distribution
                     throw $file.errorMessage
                 } else {
                     Write-Error -Message $file.errorMessage
@@ -360,7 +360,7 @@ function Remove-WslFiles {
     }
 }
 
-function Abort-Installation {
+function Remove-Installation {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory=$true)]
