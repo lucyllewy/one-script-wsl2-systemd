@@ -75,9 +75,7 @@ if [ -z "$SYSTEMD_PID" ] || [ "$SYSTEMD_PID" -ne 1 ]; then
 		done
 	fi
 
-	if command -v machinectl > /dev/null; then
-		exec /usr/bin/nsenter --mount --pid --target "$SYSTEMD_PID" -- machinectl shell -q "$SUDO_USER"@.host $WSL_SYSTEMD_EXECUTION_ARGS
-	elif [ -n "$WSL_SYSTEMD_EXECUTION_ARGS" ]; then
+	if [ -n "$WSL_SYSTEMD_EXECUTION_ARGS" ]; then
 		exec /usr/bin/nsenter --mount --pid --target "$SYSTEMD_PID" -- sudo -u "$SUDO_USER" "$WSL_SYSTEMD_EXECUTION_ARGS"
 	else
 		exec /usr/bin/nsenter --mount --pid --target "$SYSTEMD_PID" -- su - "$SUDO_USER"
