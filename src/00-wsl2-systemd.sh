@@ -97,6 +97,13 @@ fi
 
 cd "$PWD"
 
+for script in /etc/profile.d/*.sh; do
+	if [ "$script" = "/etc/profile.d/00-wsl2-systemd.sh" ]; then
+		continue
+	fi
+	source "$script"
+done
+
 if [ -d "$HOME/.wslprofile.d" ]; then
 	for script in "$HOME/.wslprofile.d/"*; do
 		source "$script"
