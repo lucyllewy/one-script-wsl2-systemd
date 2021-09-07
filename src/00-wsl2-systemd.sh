@@ -49,6 +49,10 @@ if [ -z "$SYSTEMD_PID" ] || [ "$SYSTEMD_PID" -ne 1 ]; then
 		sed -i "s|WSL_INTEROP=.*|WSL_INTEROP='/run/WSL/$(ls -rv /run/WSL | head -n1)'|" /etc/environment
 	fi
 
+	if ! grep -q WSL_DISTRO_NAME /etc/environment; then
+		echo "WSL_DISTRO_NAME='$WSL_DISTRO_NAME'" >> /etc/environment
+	fi
+
 	if [ -z "$DISPLAY" ]; then
 		if [ -f "/tmp/.X11-unix/X0" ]; then
 			echo "DISPLAY=:0" >> /etc/environment
