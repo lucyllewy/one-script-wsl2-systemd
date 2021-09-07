@@ -59,9 +59,10 @@ if [ -z "$SYSTEMD_PID" ] || [ "$SYSTEMD_PID" -ne 1 ]; then
 		else
 			echo "DISPLAY=$(awk '/nameserver/ { print $2":0" }' /etc/resolv.conf)" >> /etc/environment
 		fi
-	else
-		sed -i "/DISPLAY=.*/d" /etc/environment
+	elif ! grep -q DISPLAY /etc/environment; then
 		echo "DISPLAY='$DISPLAY'" >> /etc/environment
+	else
+		sed -i "s/DISPLAY=.*/DISPLAY='$DISPLAY'/" /etc/environment
 	fi
 
 	if [ -z "$SYSTEMD_PID" ]; then
