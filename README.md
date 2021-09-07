@@ -17,7 +17,7 @@ If you are using Windows Insider builds greater than 21286 you should use the [`
 #### In Windows
 - Install GPG4Win via winget.exe, which is available in the latest dev branch of Windows 10 Insider Preview. (disable this with `-NoGPG`)
 - Add a scheduled task that launches when you login to Windows to start the GPG-Agent from GPG4Win
-- Install a custom WSL kernel based on the Microsoft sources with AppArmor added to support [Snap Package](https://snapcraft.io) strict confinement.
+- Install a custom WSL kernel based on the Microsoft sources with AppArmor added to support [Snap Package](https://snapcraft.io) strict confinement. (disable this with `-NoKernel`)
 - Add a scheduled task that launches when you login to Windows to update the custom kernel when a new release is made.
 - Enable and start the in-built Windows SSH-Agent service.
 
