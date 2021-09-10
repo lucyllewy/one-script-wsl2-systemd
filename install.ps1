@@ -20,7 +20,7 @@ param(
 
 $PSDefaultParameterValues['*:Encoding'] = 'utf8'
 
-$repoUrl = 'https://raw.githubusercontent.com/diddlesnaps/one-script-wsl2-systemd/master/'
+$repoUrl = 'https://raw.githubusercontent.com/diddlesnaps/one-script-wsl2-systemd/main/'
 
 # The main files to install.
 $files = @{
