@@ -49,4 +49,5 @@ Currently supported distros:
 ## Alternatives
 
 - [Damion Gans' installer for the two-script variant](https://github.com/damionGans/ubuntu-wsl2-systemd-script/)
-- [My 'change the user shell' variant that supports zsh and fish](https://github.com/diddlesnaps/chsh-variant-wsl2-systemd)
+- [Genie](https://github.com/arkane-systems/genie)
+- [My 'change the user shell' variant that supports zsh and fish](https://github.com/diddlesnaps/chsh-variant-wsl2-systemd) I do not keep the change the user shell variant updated so it is likely all sorts of broken.
