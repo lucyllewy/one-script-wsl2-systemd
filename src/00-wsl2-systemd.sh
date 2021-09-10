@@ -74,11 +74,11 @@ if [ -z "$SYSTEMD_PID" ] || [ "$SYSTEMD_PID" -ne 1 ]; then
 			SYSTEMD_PID="$(ps -C systemd -o pid= | head -n1)"
 			sleep 1
 		done
-
-		while [ "$(/usr/bin/nsenter --mount --pid --target "$SYSTEMD_PID" -- systemctl is-system-running)" = "starting" ]; do
-			sleep 1
-		done
 	fi
+
+	while [ "$(/usr/bin/nsenter --mount --pid --target "$SYSTEMD_PID" -- systemctl is-system-running)" = "starting" ]; do
+		sleep 1
+	done
 
 	if [ -n "$WSL_SYSTEMD_EXECUTION_ARGS" ]; then
 		exec /usr/bin/nsenter --mount --pid --target "$SYSTEMD_PID" -- sudo -u "$SUDO_USER" /bin/sh -c "unset WSL_SYSTEMD_EXECUTION_ARGS; . '$HOME/.systemd.env'; eval \"$WSL_SYSTEMD_EXECUTION_ARGS\""
