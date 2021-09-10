@@ -49,14 +49,24 @@ if [ -z "$SYSTEMD_PID" ] || [ "$SYSTEMD_PID" -ne 1 ]; then
 		sed -i "s|WSL_INTEROP=.*|WSL_INTEROP='/run/WSL/$(ls -rv /run/WSL | head -n1)'|" /etc/environment
 	fi
 
+	if ! grep -q WSL_DISTRO_NAME /etc/environment; then
+		echo "WSL_DISTRO_NAME='$WSL_DISTRO_NAME'" >> /etc/environment
+	fi
+
 	if [ -z "$DISPLAY" ]; then
-		echo "DISPLAY='$(awk '/nameserver/ { print $2":0" }' /etc/resolv.conf)'" >> /etc/environment
+		if [ -f "/tmp/.X11-unix/X0" ]; then
+			echo "DISPLAY=:0" >> /etc/environment
+		else
+			echo "DISPLAY=$(awk '/nameserver/ { print $2":0" }' /etc/resolv.conf)" >> /etc/environment
+		fi
+	elif ! grep -q DISPLAY /etc/environment; then
+		echo "DISPLAY='$DISPLAY'" >> /etc/environment
 	else
-		sed -i '/DISPLAY=.*/d' /etc/environment
+		sed -i "s/DISPLAY=.*/DISPLAY='$DISPLAY'/" /etc/environment
 	fi
 
 	if [ -z "$SYSTEMD_PID" ]; then
-		env -i /usr/bin/unshare --fork --mount-proc --pid -- sh -c "
+		env -i /usr/bin/unshare --fork --mount-proc --pid --propagation shared -- sh -c "
 			mount -t binfmt_misc binfmt_misc /proc/sys/fs/binfmt_misc
 			exec $SYSTEMD_EXE
 			" &
@@ -64,12 +74,16 @@ if [ -z "$SYSTEMD_PID" ] || [ "$SYSTEMD_PID" -ne 1 ]; then
 			SYSTEMD_PID="$(ps -C systemd -o pid= | head -n1)"
 			sleep 1
 		done
+
+		while [ "$(/usr/bin/nsenter --mount --pid --target "$SYSTEMD_PID" -- systemctl is-system-running)" = "starting" ]; do
+			sleep 1
+		done
 	fi
 
 	if [ -n "$WSL_SYSTEMD_EXECUTION_ARGS" ]; then
-		exec /usr/bin/nsenter --mount --pid --target "$SYSTEMD_PID" -- $WSL_SYSTEMD_EXECUTION_ARGS
+		exec /usr/bin/nsenter --mount --pid --target "$SYSTEMD_PID" -- sudo -u "$SUDO_USER" /bin/sh -c "unset WSL_SYSTEMD_EXECUTION_ARGS; . '$HOME/.systemd.env'; eval \"$WSL_SYSTEMD_EXECUTION_ARGS\""
 	else
-		exec /usr/bin/nsenter --mount --pid --target "$SYSTEMD_PID" -- login -f "$SUDO_USER"
+		exec /usr/bin/nsenter --mount --pid --target "$SYSTEMD_PID" -- su - "$SUDO_USER"
 	fi
 fi
 
@@ -82,6 +96,13 @@ if [ -f "$HOME/.systemd.env" ]; then
 fi
 
 cd "$PWD"
+
+for script in /etc/profile.d/*.sh; do
+	if [ "$script" = "/etc/profile.d/00-wsl2-systemd.sh" ]; then
+		continue
+	fi
+	source "$script"
+done
 
 if [ -d "$HOME/.wslprofile.d" ]; then
 	for script in "$HOME/.wslprofile.d/"*; do

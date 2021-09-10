@@ -1,6 +1,6 @@
 ## About
 
-This repository includes the files to set-up WSL2 distro to run systemd.
+This repository includes the files to set-up WSL2 distro to run systemd. This version is only compatible with Windows builds numbered 21286 and higher, which as of January 2021 are only available in the Dev channel of the Windows Insider program.
 
 If you are using Windows Insider builds greater than 21286 you should use the [`build-21286+` branch](https://github.com/diddledan/one-script-wsl2-systemd/tree/build-21286+)
 
@@ -17,24 +17,25 @@ If you are using Windows Insider builds greater than 21286 you should use the [`
 #### In Windows
 - Install GPG4Win via winget.exe, which is available in the latest dev branch of Windows 10 Insider Preview. (disable this with `-NoGPG`)
 - Add a scheduled task that launches when you login to Windows to start the GPG-Agent from GPG4Win
-- Install a custom WSL kernel based on the Microsoft sources with AppArmor added to support [Snap Package](https://snapcraft.io) strict confinement.
+- Install a custom WSL kernel based on the Microsoft sources with AppArmor added to support [Snap Package](https://snapcraft.io) strict confinement. (disable this with `-NoKernel`)
 - Add a scheduled task that launches when you login to Windows to update the custom kernel when a new release is made.
 - Enable and start the in-built Windows SSH-Agent service.
 
 ## Installing
 
+1. Run `Install-Module -Scope CurrentUser Wsl` to install the required PowerShell module
 1. Download the `install.ps1` script
 1. Open a PowerShell or CMD window: press `Win + x` then choose either "Command Prompt" or "Windows PowerShell" depending on which your system presents in the menu
-1. Run the following command in the PowerShell or CMD window to set up your default distro
+1. Run the following command in the PowerShell Core or CMD window to set up your default distro (make sure to replace `powershell.exe` with `pwsh.exe` if you're using PowerShell Core):
     ```powershell
-    powershell.exe -NonInteractive -NoProfile -ExecutionPolicy Bypass -File \path\to\install.ps1
+    pwsh.exe -NonInteractive -NoProfile -ExecutionPolicy Bypass -File \path\to\install.ps1
     ```
 If you want to skip the GPG4Win installation, use the flag `-NoGPG`
 
 You can also specify a distro name with the `-distro` flag, e.g:
 
 ```powershell
-powershell.exe -NonInteractive -NoProfile -ExecutionPolicy Bypass -File \path\to\install.ps1 -distro Ubuntu-20.04
+pwsh.exe -NonInteractive -NoProfile -ExecutionPolicy Bypass -File \path\to\install.ps1 -distro Ubuntu-20.04
 ```
 You will find all the available distros on your system when executing `wsl.exe --list --all` in command prompt
 
@@ -45,6 +46,23 @@ Currently supported distros:
 - Alpine
 - OpenSUSE
 - Any other linux distribution with `apt-get` or `zypper` as package manager
+
+## Minimal manual installation
+
+To manually install the bare-minimum setup, i.e. without using the PowerShell script, follow the procedure below:
+
+1. Edit or create the config file at `/etc/wsl.conf` to add the following content:
+   ```ini
+   [boot]
+   command = "/usr/bin/env -i /usr/bin/unshare --fork --mount-proc --pid -- sh -c 'mount -t binfmt_misc binfmt_misc /proc/sys/fs/binfmt_misc; [ -x /usr/lib/systemd/systemd ] && exec /usr/lib/systemd/systemd --unit=multi-user.target || exec /lib/systemd/systemd'"
+   ```
+1. Copy `src/sudoers` to `/etc/sudoers.d/wsl2-systemd`.
+1. Copy `src/00-wsl2-systemd.sh` to `/etc/profile.d/00-wsl2-systemd.sh`.
+1. Exit any active terminal sessions that are using your distro.
+1. Use `wsl.exe` via powershell to terminate/shutdown your distro so that the `wsl.conf` settings are applied.
+   ```powershell
+   wsl.exe --terminate ubuntu
+   ```
 
 ## Alternatives
 
