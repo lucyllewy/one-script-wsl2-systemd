@@ -98,9 +98,9 @@ for script in /etc/profile.d/*.sh; do
 done
 
 if [ -f "$HOME/.systemd.env" ]; then
-	set -e
+	set -a
 	source "$HOME/.systemd.env"
-	set +e
+	set +a
 	rm "$HOME/.systemd.env"
 fi
 
