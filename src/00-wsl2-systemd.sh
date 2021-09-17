@@ -90,19 +90,21 @@ fi
 unset SYSTEMD_EXE
 unset SYSTEMD_PID
 
-if [ -f "$HOME/.systemd.env" ]; then
-	source "$HOME/.systemd.env"
-	rm "$HOME/.systemd.env"
-fi
-
-cd "$PWD"
-
 for script in /etc/profile.d/*.sh; do
 	if [ "$script" = "/etc/profile.d/00-wsl2-systemd.sh" ]; then
 		continue
 	fi
 	source "$script"
 done
+
+if [ -f "$HOME/.systemd.env" ]; then
+	set -e
+	source "$HOME/.systemd.env"
+	set +e
+	rm "$HOME/.systemd.env"
+fi
+
+cd "$PWD"
 
 if [ -d "$HOME/.wslprofile.d" ]; then
 	for script in "$HOME/.wslprofile.d/"*; do
