@@ -122,11 +122,11 @@ try {
                 }
 
                 $latest = (Invoke-RestMethod -Uri 'https://api.github.com/repos/diddlesnaps/WSL2-Linux-Kernel/releases' -UseBasicParsing)[0]
-                $latest_version = [version]$latest.tag_name.Remove($latest.tag_name.IndexOf('-microsoft-snapd'))
-                $current_version = [version](Get-Content '"$env:APPDATA/wsl2-custom-kernel-version.txt"')
-                if ($latest_version -gt $current_version) {
+                $latest_version = [version]$latest.tag_name.Replace('linux-msft-snapd-', '').Replace('linux-microsoft-snapd-', '')
+                $current_version = [version](Get-Content "$env:APPDATA/wsl2-custom-kernel-version.txt" -ErrorAction SilentlyContinue)
+                if (-not $current_version -or $latest_version -gt $current_version) {
                     $assets = $latest.assets | Where-Object {$_.name -Like '*-x86_64'}
-                    Invoke-WebRequest -Uri $assets.browser_download_url -OutFile '"$env:APPDATA/wsl2-custom-kernel"'
+                    Invoke-WebRequest -Uri $assets.browser_download_url -OutFile "$env:APPDATA/wsl2-custom-kernel"
                     if ($?) {
                         Move-Item "$env:APPDATA/wsl2-custom-kernel.tmp" "$env:APPDATA/wsl2-custom-kernel" -Force
                         $latest_version | Set-Content "$env:APPDATA/wsl2-custom-kernel-version.txt"
