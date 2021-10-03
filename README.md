@@ -9,7 +9,7 @@ This repository includes the files to set-up WSL2 distro to run systemd.
 - Install a sudoers configuration file that allows the script to call itself as root without requring setuid.
 - Install GPG and SSH agent relays to Windows equivalents.
 - Install WSLUtilities
-- Configure your WSL sessions to connect to an X11 server in Windows.
+- Configure your WSL sessions to connect to an X11 server in Windows, or use WSLg if it is available on your system.
 - Configure xdg-open to open files and addresses in Windows
 
 #### In Windows
