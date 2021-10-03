@@ -76,7 +76,7 @@ if [ -z "$SYSTEMD_PID" ] || [ "$SYSTEMD_PID" -ne 1 ]; then
 		done
 	fi
 
-	IS_SYSTEMD_READY_CMD="/usr/bin/nsenter --mount --pid --target '$SYSTEMD_PID' -- systemctl is-system-running"
+	IS_SYSTEMD_READY_CMD="/usr/bin/nsenter --mount --pid --target $SYSTEMD_PID -- systemctl is-system-running"
 	WAITMSG="$($IS_SYSTEMD_READY_CMD 2>&1)"
 	if [ "$WAITMSG" = "initializing" ] || [ "$WAITMSG" = "starting" ] || [ "$WAITMSG" = "Failed to connect to bus: No such file or directory" ]; then
 		echo "Waiting for systemd to finish booting"
