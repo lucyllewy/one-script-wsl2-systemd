@@ -89,7 +89,7 @@ if [ -z "$SYSTEMD_PID" ] || [ "$SYSTEMD_PID" -ne 1 ]; then
 	echo "\nSystemd is ready. Logging in."
 
 	if [ -n "$WSL_SYSTEMD_EXECUTION_ARGS" ]; then
-		exec /usr/bin/nsenter --mount --pid --target "$SYSTEMD_PID" -- sudo -u "$SUDO_USER" /bin/sh -c "unset WSL_SYSTEMD_EXECUTION_ARGS; . '$HOME/.systemd.env'; eval \"$WSL_SYSTEMD_EXECUTION_ARGS\""
+		exec /usr/bin/nsenter --mount --pid --target "$SYSTEMD_PID" -- sudo -u "$SUDO_USER" /bin/sh -c "unset WSL_SYSTEMD_EXECUTION_ARGS; set -a; . '$HOME/.systemd.env'; set +a; eval \"$WSL_SYSTEMD_EXECUTION_ARGS\""
 	else
 		exec /usr/bin/nsenter --mount --pid --target "$SYSTEMD_PID" -- su - "$SUDO_USER"
 	fi
