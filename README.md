@@ -1,8 +1,6 @@
 ## About
 
-This repository includes the files to set-up WSL2 distro to run systemd. This version is only compatible with Windows builds numbered 21286 and higher, which as of January 2021 are only available in the Dev channel of the Windows Insider program.
-
-If you are using Windows Insider builds greater than 21286 you should use the [`build-21286+` branch](https://github.com/diddledan/one-script-wsl2-systemd/tree/build-21286+)
+This repository includes the files to set-up WSL2 distro to run systemd. This version is only compatible with Windows builds numbered **21286** and higher.
 
 ### What does it do
 
