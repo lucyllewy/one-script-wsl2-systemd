@@ -58,6 +58,7 @@ To manually install the bare-minimum setup, i.e. without using the PowerShell sc
    ```
 1. Copy `src/sudoers` to `/etc/sudoers.d/wsl2-systemd`.
 1. Copy `src/00-wsl2-systemd.sh` to `/etc/profile.d/00-wsl2-systemd.sh`.
+1. Ensure that your user account is a member of the `sudo` group, or change `%sudo` in `/etc/sudoers.d/wsl2-systemd` to an alternative group name of which your account is a member.
 1. Exit any active terminal sessions that are using your distro.
 1. Use `wsl.exe` via powershell to terminate/shutdown your distro so that the `wsl.conf` settings are applied.
    ```powershell
