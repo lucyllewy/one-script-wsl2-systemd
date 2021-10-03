@@ -54,7 +54,7 @@ To manually install the bare-minimum setup, i.e. without using the PowerShell sc
 1. Edit or create the config file at `/etc/wsl.conf` to add the following content:
    ```ini
    [boot]
-   command = "/usr/bin/env -i /usr/bin/unshare --fork --mount-proc --pid -- sh -c 'mount -t binfmt_misc binfmt_misc /proc/sys/fs/binfmt_misc; [ -x /usr/lib/systemd/systemd ] && exec /usr/lib/systemd/systemd --unit=multi-user.target || exec /lib/systemd/systemd --unit=multi-user.target'; sleep 2"
+   command = "/usr/bin/env -i /usr/bin/unshare --fork --mount-proc --pid -- sh -c 'mount -t binfmt_misc binfmt_misc /proc/sys/fs/binfmt_misc; [ -x /usr/lib/systemd/systemd ] && exec /usr/lib/systemd/systemd --unit=multi-user.target || exec /lib/systemd/systemd --unit=multi-user.target'"
    ```
 1. Copy `src/sudoers` to `/etc/sudoers.d/wsl2-systemd`.
 1. Copy `src/00-wsl2-systemd.sh` to `/etc/profile.d/00-wsl2-systemd.sh`.
