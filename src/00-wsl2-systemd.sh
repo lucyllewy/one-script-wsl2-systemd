@@ -76,9 +76,17 @@ if [ -z "$SYSTEMD_PID" ] || [ "$SYSTEMD_PID" -ne 1 ]; then
 		done
 	fi
 
-	while [ "$(/usr/bin/nsenter --mount --pid --target "$SYSTEMD_PID" -- systemctl is-system-running)" = "starting" ]; do
+	IS_SYSTEMD_READY_CMD="/usr/bin/nsenter --mount --pid --target '$SYSTEMD_PID' -- systemctl is-system-running"
+	WAITMSG="$($IS_SYSTEMD_READY_CMD 2>&1)"
+	if [ "$WAITMSG" = "initializing" ] || [ "$WAITMSG" = "starting" ] || [ "$WAITMSG" = "Failed to connect to bus: No such file or directory" ]; then
+		echo "Waiting for systemd to finish booting"
+	fi
+	while [ "$WAITMSG" = "initializing" ] || [ "$WAITMSG" = "starting" ] || [ "$WAITMSG" = "Failed to connect to bus: No such file or directory" ]; do
+		echo -n "."
 		sleep 1
+		WAITMSG="$($IS_SYSTEMD_READY_CMD 2>&1)"
 	done
+	echo "Systemd is ready. Logging in."
 
 	if [ -n "$WSL_SYSTEMD_EXECUTION_ARGS" ]; then
 		exec /usr/bin/nsenter --mount --pid --target "$SYSTEMD_PID" -- sudo -u "$SUDO_USER" /bin/sh -c "unset WSL_SYSTEMD_EXECUTION_ARGS; . '$HOME/.systemd.env'; eval \"$WSL_SYSTEMD_EXECUTION_ARGS\""
