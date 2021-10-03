@@ -1,6 +1,6 @@
 ## About
 
-This repository includes the files to set-up WSL2 distro to run systemd. This version is only compatible with Windows builds numbered **21286** and higher.
+This repository includes the files to set-up WSL2 distro to run systemd.
 
 ### What does it do
 
