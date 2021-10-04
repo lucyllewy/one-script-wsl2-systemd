@@ -653,8 +653,8 @@ do_kali() {
     export DEBIAN_FRONTEND=noninteractive
     apt-get update
     apt install -yyq gnupg2 apt-transport-https
-    wget -O - https://access.patrickwu.space/wslu/public.asc | apt-key add -
-    echo "deb https://access.patrickwu.space/wslu/kali kali-rolling main" >> /etc/apt/sources.list
+    wget -O - https://pkg.wslutiliti.es/public.key >> /etc/apt/trusted.gpg.d/wslu.asc
+    echo "deb https://pkg.wslutiliti.es/kali kali-rolling main" >> /etc/apt/sources.list
     apt-get update
     apt-get install -yyq wslu
 }
@@ -662,8 +662,8 @@ do_apt() {
     export DEBIAN_FRONTEND=noninteractive
     apt-get update
     apt install -yyq gnupg2 apt-transport-https
-    wget -O - https://access.patrickwu.space/wslu/public.asc | apt-key add -
-    echo "deb https://access.patrickwu.space/wslu/debian buster main" >> /etc/apt/sources.list
+    wget -O - https://pkg.wslutiliti.es/public.key >> /etc/apt/trusted.gpg.d/wslu.asc
+    echo "deb https://pkg.wslutiliti.es/debian buster main" >> /etc/apt/sources.list
     apt-get update
     apt-get install -yyq wslu
 }
