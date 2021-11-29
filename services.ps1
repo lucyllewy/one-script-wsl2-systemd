@@ -23,15 +23,7 @@ try {
 
 try {
     if (-not $NoGPG) {
-        $Opts = @{
-            WakeToRun=$false
-            StartIfNotIdle=$true
-            StartIfOnBatteries=$true
-            StopIfGoingOffIdle=$false
-            StopIfGoingOnBatteries=$false
-            RunWithoutNetwork=$true
-            MultipleInstancePolicy="StopExisting"
-        }
+        $Opts = New-ScheduledJobOption -MultipleInstancePolicy StopExisting
         Register-ScheduledJob `
             -Name GPGAgent `
             -Trigger (New-JobTrigger -AtLogOn) `
@@ -54,15 +46,7 @@ try {
 
 try {
     if (-not $NoKernel) {
-        $Opts = @{
-            WakeToRun=$false
-            StartIfNotIdle=$true
-            StartIfOnBatteries=$true
-            StopIfGoingOffIdle=$false
-            StopIfGoingOnBatteries=$false
-            RunWithoutNetwork=$false
-            MultipleInstancePolicy="StopExisting"
-        }
+        $Opts = New-ScheduledJobOption -RequireNetwork -MultipleInstancePolicy StopExisting
         Register-ScheduledJob `
             -Name UpdateWSL2CustomKernel `
             -Trigger (New-JobTrigger -AtLogOn) `
