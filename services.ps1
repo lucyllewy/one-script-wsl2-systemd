@@ -33,7 +33,6 @@ try {
                 & "${env:ProgramFiles(x86)}/GnuPG/bin/gpg-connect-agent.exe" /bye
             }
         Set-ScheduledTask -TaskName GPGAgent -TaskPath Microsoft\Windows\PowerShell\ScheduledJobs -Principal (New-ScheduledTaskPrincipal -Logontype Interactive -Userid $env:USERNAME)
-        Start-ScheduledTask -TaskName GPGAgent -TaskPath Microsoft\Windows\PowerShell\ScheduledJobs
     }
 } catch {
     Write-Output $_
@@ -124,7 +123,6 @@ try {
                 }
             }
             Set-ScheduledTask -TaskName UpdateWSL2CustomKernel -TaskPath Microsoft\Windows\PowerShell\ScheduledJobs -Principal (New-ScheduledTaskPrincipal -Logontype Interactive -Userid $env:USERNAME)
-            Start-ScheduledTask -TaskName UpdateWSL2CustomKernel -TaskPath Microsoft\Windows\PowerShell\ScheduledJobs
     }
 } catch {
     Write-Output $_
