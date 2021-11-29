@@ -50,6 +50,7 @@ try {
             -Name UpdateWSL2CustomKernel `
             -Trigger (New-JobTrigger -AtLogOn) `
             -ScheduledJobOption $Opts `
+            -RunNow `
             -ScriptBlock {
                 function Get-IniContent($FilePath)
                 {
