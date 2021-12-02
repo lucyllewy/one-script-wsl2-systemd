@@ -405,8 +405,10 @@ function Write-PowerShellMsg {
 }
 
 if (-not $Env:WT_SESSION) {
-    if (-not -not $(where.exe wt.exe)) {
-        if (-not -not $(where.exe pwsh.exe)) {
+    where.exe /Q wt.exe
+    if ($?) {
+        where.exe /Q pwsh.exe
+        if ($?) {
             Write-Output "Relaunching in Windows Terminal"
             wt.exe new-tab --startingDirectory=$PWD pwsh.exe -NoExit -NonInteractive -NoProfile $MyInvocation.Line
         } elseif ($PSVersionTable.PSEdition -ne "Core") {
