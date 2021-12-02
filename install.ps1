@@ -80,8 +80,6 @@ $sshagent = @{
     'errorMessage' = 'Could not fetch the SSH agent script. Continuing without it.'
 }
 
-$npiperelayUrl = 'https://github.com/NZSmartie/npiperelay/releases/download/v0.1/npiperelay.exe'
-
 $powershellProcess = (Get-Process -Id $PID).ProcessName + '.exe'
 
 if (-not [System.Environment]::Is64BitProcess) {
