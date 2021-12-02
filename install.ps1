@@ -69,17 +69,15 @@ $files = @{
 }
 
 # These depend on the npiperelay.exe so we include them separately.
-$agentfiles = @{
-    'gpg-agent.sh' = @{
-        'source' = 'src/profile.d/gpg-agent.sh';
-        'dest' = '$HOME/.wslprofile.d/gpg-agent.sh'
-        'errorMessage' = 'Could not fetch the GPG agent script. Continuing without it.'
-    };
-    'ssh-agent.sh' = @{
-        'source' = 'src/profile.d/ssh-agent.sh';
-        'dest' = '$HOME/.wslprofile.d/ssh-agent.sh'
-        'errorMessage' = 'Could not fetch the SSH agent script. Continuing without it.'
-    }
+$gpgagent = @{
+    'source' = 'src/profile.d/gpg-agent.sh';
+    'dest' = '$HOME/.wslprofile.d/gpg-agent.sh'
+    'errorMessage' = 'Could not fetch the GPG agent script. Continuing without it.'
+}
+$sshagent = @{
+    'source' = 'src/profile.d/ssh-agent.sh';
+    'dest' = '$HOME/.wslprofile.d/ssh-agent.sh'
+    'errorMessage' = 'Could not fetch the SSH agent script. Continuing without it.'
 }
 
 $npiperelayUrl = 'https://github.com/NZSmartie/npiperelay/releases/download/v0.1/npiperelay.exe'
@@ -488,15 +486,10 @@ $wslconfig.boot.command = "/usr/bin/env -i /usr/bin/unshare --fork --mount-proc 
 
 # Fetch agent sockets relay
 Write-Debug "--- Installing SSH, GPG, etc. agent scripts in $($Distribution.Name)"
-$gpgsock = "$env:APPDATA\gnupg\S.gpg-agent".replace('\', '/')
-$relayexe = "$env:APPDATA\wsl2-ssh-gpg-agent-relay.exe".replace('\', '/')
-$relayResponse = Invoke-WebRequest -Uri $npiperelayUrl -UseBasicParsing -OutFile $relayexe -PassThru
-
-if ($relayResponse.StatusCode -eq 200) {
-    # Setup agent sockets
-    Add-WslFiles -Distribution $Distribution -Files $agentfiles -Replacements @{ '__RELAY_EXE__' = $relayexe; '__GPG_SOCK__' = $gpgsock } @params
-} else {
-    Write-Warning -Message 'Could not fetch the SSH, GPG, etc. agent relay proxy executable. Continuing without it.'
+# Setup agent sockets
+Add-WslFiles -Distribution $Distribution -Files $sshagent @params
+if (-not $NoGPG) {
+    Add-WslFiles -Distribution $Distribution -Files $gpgagent @params
 }
 
 # Disable some systemd units that conflict with our setup
@@ -706,6 +699,7 @@ if [ -f /etc/os-release ]; then
             ;;
     esac
 fi
+sed -Ei 's^(winps_exec "Write-Output \\\$)Env:\$\*(" | cat)^\1{Env:$*}\2^' /usr/bin/wslview
 if command -v wslview >/dev/null; then
     wslview --reg-as-browser
 fi
@@ -775,8 +769,8 @@ if ($NoGPG) {
 
 Write-Debug '--- Adding a Windows scheduled tasks and starting services'
 
-$adminScript = "$env:TEMP\wsl2-systemd-services.ps1"
-$response = Invoke-WebRequest -Uri "$repoUrl/services.ps1" -OutFile $adminScript -PassThru -UseBasicParsing
+$adminScript = "$env:TEMP\setup-agent-services.ps1"
+$response = Invoke-WebRequest -Uri "$repoUrl/src/setup-agent-services.ps1" -OutFile $adminScript -PassThru -UseBasicParsing
 if ($response.StatusCode -eq 200) {
     $CmdArgs = @()
     if ($NoGPG) {

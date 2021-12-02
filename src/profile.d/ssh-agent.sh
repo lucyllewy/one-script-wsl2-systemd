@@ -3,11 +3,13 @@ function is_wsl() {
 }
 
 if is_wsl && command -v socat > /dev/null; then
-    relayexe="$(wslpath '__RELAY_EXE__')"
-    export SSH_AUTH_SOCK="$HOME/.ssh/agent.sock"
-    if ! ps -eo args= | grep -q "^socat UNIX-LISTEN:$SSH_AUTH_SOCK"; then
-        rm -f "$SSH_AUTH_SOCK"
-        setsid --fork socat UNIX-LISTEN:"$SSH_AUTH_SOCK,fork" EXEC:"$relayexe -ei -ep -s //./pipe/openssh-ssh-agent",nofork
-    fi
-    unset relayexe
+    rm -f "$HOME/.ssh/agent.sock"
+
+    mkdir -p "$HOME/.wsl-cmds"
+    ln -sf "$(wslpath "$(wslvar 'SystemRoot')/System32/OpenSSH/scp.exe")" "$HOME/.wsl-cmds/scp"
+    ln -sf "$(wslpath "$(wslvar 'SystemRoot')/System32/OpenSSH/sftp.exe")" "$HOME/.wsl-cmds/sftp"
+    ln -sf "$(wslpath "$(wslvar 'SystemRoot')/System32/OpenSSH/ssh.exe")" "$HOME/.wsl-cmds/ssh"
+    ln -sf "$(wslpath "$(wslvar 'SystemRoot')/System32/OpenSSH/ssh-add.exe")" "$HOME/.wsl-cmds/ssh-add"
+
+    [[ "$PATH" != *"$HOME/.wsl-cmds"* ]] && export PATH="$HOME/.wsl-cmds:$PATH"
 fi

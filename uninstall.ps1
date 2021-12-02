@@ -11,8 +11,8 @@ $rootFiles = @(
     '/etc/systemd/system/wsl2-xwayland.socket'
     )
 $userFiles = @(
-    '/home/*/.wslprofile.d/gpg-agent.s',
-    '/home/*/.wslprofile.d/ssh-agent.sh'
+    '/home/*/.wslprofile.d',
+    '/home/*/.wsl-cmds'
 )
 
 function Invoke-WslCommand
@@ -92,7 +92,7 @@ function Remove-WslFiles {
             } elseif ($User) {
                 $commandArgs = @{User = $User}
             }
-            Invoke-WslCommand -Distribution $Distribution -Command "rm -f $remove" @commandArgs
+            Invoke-WslCommand -Distribution $Distribution -Command "rm -rf $remove" @commandArgs
         }
     }
 }
