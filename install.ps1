@@ -68,7 +68,7 @@ $files = @{
     };
 }
 
-# These depend on the npiperelay.exe so we include them separately.
+# These are installed after the main files.
 $gpgagent = @{
     'source' = 'src/profile.d/gpg-agent.sh';
     'dest' = '$HOME/.wslprofile.d/gpg-agent.sh'
@@ -485,9 +485,8 @@ if (-not $wslconfig["boot"]["command"]) {
 $wslconfig.boot.command = "/usr/bin/env -i /usr/bin/unshare --fork --mount-proc --pid -- sh -c 'mount -t binfmt_misc binfmt_misc /proc/sys/fs/binfmt_misc; [ -x /usr/lib/systemd/systemd ] && exec /usr/lib/systemd/systemd --unit=multi-user.target || exec /lib/systemd/systemd --unit=multi-user.target'"
 (Write-IniOutput $wslconfig) -Join "`n" | Add-WslFileContent -Distribution $Distribution -User "root" -File "/etc/wsl.conf"
 
-# Fetch agent sockets relay
-Write-Debug "--- Installing SSH, GPG, etc. agent scripts in $($Distribution.Name)"
 # Setup agent sockets
+Write-Debug "--- Installing SSH, GPG, etc. agent scripts in $($Distribution.Name)"
 Add-WslFiles -Distribution $Distribution -Files $sshagent @params
 if (-not $NoGPG) {
     Add-WslFiles -Distribution $Distribution -Files $gpgagent @params
