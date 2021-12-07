@@ -444,11 +444,12 @@ if ($Distro) {
 } else {
     $Distribution = Get-WslDistribution -Default | Select-Object -first 1
     if (-not $Distribution) {
-        Write-Error "!!! $Distro is not currently installed, and you do not have a default distribution. Refusing to continue."
+        Write-Error "!!! You do not have a default distribution. Refusing to continue."
         exit
     }
     Write-Debug "--- No distro specified, using your default distro $($Distribution.Name)"
 }
+$Distro = $($Distribution.Name)
 
 if (-not $User) {
     Write-Debug "--- Detecting default user in $Distro"
