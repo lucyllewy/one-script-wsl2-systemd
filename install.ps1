@@ -70,14 +70,18 @@ $files = @{
 
 # These depend on the npiperelay.exe so we include them separately.
 $gpgagent = @{
-    'source' = 'src/profile.d/gpg-agent.sh';
-    'dest' = '$HOME/.wslprofile.d/gpg-agent.sh'
-    'errorMessage' = 'Could not fetch the GPG agent script. Continuing without it.'
+    'gpgagent' = @{
+        'source' = 'src/profile.d/gpg-agent.sh';
+        'dest' = '$HOME/.wslprofile.d/gpg-agent.sh'
+        'errorMessage' = 'Could not fetch the GPG agent script. Continuing without it.'
+    }
 }
 $sshagent = @{
-    'source' = 'src/profile.d/ssh-agent.sh';
-    'dest' = '$HOME/.wslprofile.d/ssh-agent.sh'
-    'errorMessage' = 'Could not fetch the SSH agent script. Continuing without it.'
+    'sshagent' = @{
+        'source' = 'src/profile.d/ssh-agent.sh';
+        'dest' = '$HOME/.wslprofile.d/ssh-agent.sh'
+        'errorMessage' = 'Could not fetch the SSH agent script. Continuing without it.'
+    }
 }
 
 $powershellProcess = (Get-Process -Id $PID).ProcessName + '.exe'
