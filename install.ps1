@@ -68,7 +68,7 @@ $files = @{
     };
 }
 
-# These are installed after the main files.
+# These are installed after the main files in the default user's home folder.
 $gpgagent = @{
     'source' = 'src/profile.d/gpg-agent.sh';
     'dest' = '$HOME/.wslprofile.d/gpg-agent.sh'
@@ -449,10 +449,9 @@ if ($Distro) {
     }
     Write-Debug "--- No distro specified, using your default distro $($Distribution.Name)"
 }
-$Distro = $($Distribution.Name)
 
 if (-not $User) {
-    Write-Debug "--- Detecting default user in $Distro"
+    Write-Debug "--- Detecting default user in $($Distribution.Name)"
     try {
         $User = Invoke-WslCommand -Distribution $Distribution -Command "whoami"
     } catch {
@@ -463,7 +462,7 @@ if (-not $User) {
 
 $params = @{User = $User}
 
-Write-Debug "--- Ensuring $User is a sudoer in $Distro"
+Write-Debug "--- Ensuring $User is a sudoer in $($Distribution.Name)"
 Invoke-WslCommand -Distribution $Distribution -User 'root' -Command "groupadd --system sudo 2>/dev/null" -ErrorAction SilentlyContinue
 Invoke-WslCommand -Distribution $Distribution -User 'root' -Command "usermod -a -G sudo $User 2>/dev/null" -ErrorAction SilentlyContinue
 
