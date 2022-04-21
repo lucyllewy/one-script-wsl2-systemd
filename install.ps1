@@ -68,7 +68,7 @@ $files = @{
     };
 }
 
-# These depend on the npiperelay.exe so we include them separately.
+# These are installed after the main files in the default user's home folder.
 $gpgagent = @{
     'gpgagent' = @{
         'source' = 'src/profile.d/gpg-agent.sh';
@@ -448,14 +448,14 @@ if ($Distro) {
 } else {
     $Distribution = Get-WslDistribution -Default | Select-Object -first 1
     if (-not $Distribution) {
-        Write-Error "!!! $Distro is not currently installed, and you do not have a default distribution. Refusing to continue."
+        Write-Error "!!! You do not have a default distribution. Refusing to continue."
         exit
     }
     Write-Debug "--- No distro specified, using your default distro $($Distribution.Name)"
 }
 
 if (-not $User) {
-    Write-Debug "--- Detecting default user in $Distro"
+    Write-Debug "--- Detecting default user in $($Distribution.Name)"
     try {
         $User = Invoke-WslCommand -Distribution $Distribution -Command "whoami"
     } catch {
@@ -466,7 +466,7 @@ if (-not $User) {
 
 $params = @{User = $User}
 
-Write-Debug "--- Ensuring $User is a sudoer in $Distro"
+Write-Debug "--- Ensuring $User is a sudoer in $($Distribution.Name)"
 Invoke-WslCommand -Distribution $Distribution -User 'root' -Command "groupadd --system sudo 2>/dev/null" -ErrorAction SilentlyContinue
 Invoke-WslCommand -Distribution $Distribution -User 'root' -Command "usermod -a -G sudo $User 2>/dev/null" -ErrorAction SilentlyContinue
 
@@ -488,9 +488,8 @@ if (-not $wslconfig["boot"]["command"]) {
 $wslconfig.boot.command = "/usr/bin/env -i /usr/bin/unshare --fork --mount-proc --pid -- sh -c 'mount -t binfmt_misc binfmt_misc /proc/sys/fs/binfmt_misc; [ -x /usr/lib/systemd/systemd ] && exec /usr/lib/systemd/systemd --unit=multi-user.target || exec /lib/systemd/systemd --unit=multi-user.target'"
 (Write-IniOutput $wslconfig) -Join "`n" | Add-WslFileContent -Distribution $Distribution -User "root" -File "/etc/wsl.conf"
 
-# Fetch agent sockets relay
-Write-Debug "--- Installing SSH, GPG, etc. agent scripts in $($Distribution.Name)"
 # Setup agent sockets
+Write-Debug "--- Installing SSH, GPG, etc. agent scripts in $($Distribution.Name)"
 Add-WslFiles -Distribution $Distribution -Files $sshagent @params
 if (-not $NoGPG) {
     Add-WslFiles -Distribution $Distribution -Files $gpgagent @params
