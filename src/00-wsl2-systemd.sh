@@ -14,6 +14,7 @@ SYSTEMD_PID="$(ps -C systemd -o pid= | head -n1)"
 if [ -z "$SYSTEMD_PID" ] || [ "$SYSTEMD_PID" -ne 1 ]; then
 	if [ -z "$SUDO_USER" ]; then
 		[ -f "$HOME/.systemd.env" ] && rm "$HOME/.systemd.env"
+		SUDO_USER="root"
 		export > "$HOME/.systemd.env"
 	fi
 
