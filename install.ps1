@@ -817,7 +817,7 @@ if ($response.StatusCode -eq 200) {
 Write-Output "`nDone."
 if (-not $NoKernel) {
     Write-Output "If you want to go back to the Microsoft kernel open a PowerShell or CMD window and run:"
-    Write-Output "`n`t$powershellProcess -NonInteractive -NoProfile -Command 'Start-Process' -Verb RunAs -FilePath $powershellProcess -ArgumentList { Unregister-ScheduledJob -Name UpdateWSL2CustomKernel }"
+    Write-Output "`n`t$powershellProcess -NonInteractive -NoProfile -Command 'Start-Process' -Verb RunAs -FilePath $powershellProcess -ArgumentList '{ Unregister-ScheduledJob -Name UpdateWSL2CustomKernel }'"
 }
 Write-Output "`n"
 Write-Output "You may now close this window..."
