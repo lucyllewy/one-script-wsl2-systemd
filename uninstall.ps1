@@ -174,7 +174,7 @@ Write-Output "---------------------------------------------------------`n`n"
 Get-WslDistribution | ForEach-Object {
     Remove-WslFiles -Files $rootFiles -Distribution $_ -User 'root'
     Remove-WslFiles -Files $userFiles -Distribution $_ -User 'root'
-    if (Test-Path("$($Distribution.FileSystemPath)\etc\wsl.conf")) {
+    if (Test-Path -Path "$($Distribution.FileSystemPath)\etc\wsl.conf") {
         $wslconfig = Get-IniContent "$($Distribution.FileSystemPath)\etc\wsl.conf"
         if ($wslconfig["boot"]) {
             $wslconfig.boot.Remove('command')
