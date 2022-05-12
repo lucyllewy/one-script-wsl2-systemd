@@ -792,7 +792,7 @@ if ($NoGPG) {
     Write-Debug 'Cannot find winget.exe. Skipping Gpg4Win installation'
 }
 
-Write-Debug '--- Adding a Windows scheduled tasks and starting services'
+Write-Debug '--- Adding Windows scheduled tasks and starting services'
 
 $adminScript = "$env:TEMP\setup-agent-services.ps1"
 $response = Invoke-WebRequest -Uri "$repoUrl/src/setup-agent-services.ps1" -OutFile $adminScript -PassThru -UseBasicParsing
