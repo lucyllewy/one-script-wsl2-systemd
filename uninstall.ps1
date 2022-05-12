@@ -164,27 +164,7 @@ Write-Output "#       One Script WSL2 Systemd uninstall script        #"
 Write-Output "#                                                       #"
 Write-Output "#########################################################`n`n"
 
-if (-not $Env:WT_SESSION) {
-    if (-not -not $(where.exe wt.exe)) {
-        Write-Output "Relaunching in Windows Terminal"
-        if (-not -not $(where.exe pwsh.exe)) {
-            wt.exe new-tab --startingDirectory=$PWD pwsh.exe -NoExit -NonInteractive -NoProfile $MyInvocation.Line
-        } elseif ($PSVersionTable.PSEdition -ne "Core") {
-            Write-PowerShellMsg
-        }
-        exit
-    } else {
-        Write-Output "The output of this script requires that PowerShell be hosted inside Windows Terminal. Please install Windows Terminal from the Windows Store if it is not already installed, open a new PowerShell Core session in Windows Terminal, and re-run this script there."
-        exit
-    }
-}
-
-if ($PSVersionTable.PSEdition -ne "Core") {
-    Write-PowerShellMsg
-    exit
-}
-
-if (-not $IsWindows) {
+if ($PSVersionTable.PSEdition -eq "Core" -and -not $IsWindows) {
     Write-Output "This script must be run in Windows."
     exit
 }
