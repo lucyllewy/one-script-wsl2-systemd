@@ -176,7 +176,8 @@ function Invoke-WslCommand
         }
 
         $Distribution | ForEach-Object {
-            $wslargs = @("--distribution", $_.Name)
+            $DistroName = $_.Name
+            $wslargs = @("--distribution", $DistroName)
             if ($User) {
                 $wslargs += @("--user", $User)
             }
@@ -185,11 +186,11 @@ function Invoke-WslCommand
             $Command = $Command.Replace("`r`n", "`n") # Replace Windows newlines with Unix ones
             $Command += '#' # Add a comment on the last line to hide PowerShell cruft added to the end of the string
 
-            if ($PSCmdlet.ShouldProcess($_.Name, "Invoke Command")) {
-                $Command | &$wslPath @wslargs /bin/bash
+            if ($PSCmdlet.ShouldProcess($DistroName, "Invoke Command")) {
+                $Command | &$wslPath @wslargs /bin/sh
                 if ($LASTEXITCODE -ne 0) {
                     # Note: this could be the exit code of wsl.exe, or of the launched command.
-                    throw "Wsl.exe returned exit code $LASTEXITCODE"
+                    throw "Wsl.exe returned exit code $LASTEXITCODE from distro: ${DistroName}"
                 }    
             }
         }
@@ -413,18 +414,13 @@ Write-Output "If you encounter issues, please rerun the script with ``-Debug``, 
 
 Write-Output "---------------------------------------------------------`n`n"
 
-if ($Distro) {
-    $Distribution = Get-WslDistribution -Name $Distro | Select-Object -first 1
-    if (-not $Distribution) {
-        Write-Error "!!! $Distro is not currently installed. Refusing to continue."
-        exit
-    }
+if ($Distro -and -not ($Distribution = Get-WslDistribution -Name $Distro)) {
+    Write-Error "!!! $Distro is not currently installed. Refusing to continue."
+    exit
+} elseif (-not ($Distribution = Get-WslDistribution -Default)) {
+    Write-Error "!!! You do not have a default distribution. Refusing to continue."
+    exit
 } else {
-    $Distribution = Get-WslDistribution -Default | Select-Object -first 1
-    if (-not $Distribution) {
-        Write-Error "!!! You do not have a default distribution. Refusing to continue."
-        exit
-    }
     Write-Debug "--- No distro specified, using your default distro $($Distribution.Name)"
 }
 
@@ -450,7 +446,7 @@ Add-WslFiles -Distribution $Distribution -Files $files @params
 
 Write-Debug "--- Setting systemd to automatically start in $($Distribution.Name)"
 $wslconfig = @{}
-if (Test-Path("$($Distribution.FileSystemPath)\etc\wsl.conf")) {
+if (Test-Path -Path "$($Distribution.FileSystemPath)\etc\wsl.conf") {
     $wslconfig = Get-IniContent "$($Distribution.FileSystemPath)\etc\wsl.conf"
 }
 if (-not $wslconfig["boot"]) {

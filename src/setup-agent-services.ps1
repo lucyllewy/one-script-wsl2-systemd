@@ -115,7 +115,7 @@ try {
                         Move-Item "$env:APPDATA/wsl2-custom-kernel.tmp" "$env:APPDATA/wsl2-custom-kernel" -Force
                         $latest_version | Set-Content "$env:APPDATA/wsl2-custom-kernel-version.txt"
                         $wslconfig = @{'wsl2'=@{'kernel'=''}}
-                        if (Test-Path("$env:USERPROFILE/.wslconfig")) {
+                        if (Test-Path -Path "$env:USERPROFILE/.wslconfig") {
                             $wslconfig = Get-IniContent "$env:USERPROFILE/.wslconfig"
                         }
                         $wslconfig["wsl2"]["kernel"] = "$env:APPDATA\wsl2-custom-kernel".Replace('\', '\\')
