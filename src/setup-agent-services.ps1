@@ -112,7 +112,7 @@ try {
                     $assets = $latest.assets | Where-Object {$_.name -Like '*-x86_64'}
                     Invoke-WebRequest -Uri $assets.browser_download_url -OutFile "$env:APPDATA/wsl2-custom-kernel"
                     if ($?) {
-                        Move-Item "$env:APPDATA/wsl2-custom-kernel.tmp" "$env:APPDATA/wsl2-custom-kernel" -Force
+                        Move-Item "$env:APPDATA/wsl2-custom-kernel.tmp" "$env:APPDATA/wsl2-custom-kernel.tmp" -Force
                         $latest_version | Set-Content "$env:APPDATA/wsl2-custom-kernel-version.txt"
                         $wslconfig = @{'wsl2'=@{'kernel'=''}}
                         if (Test-Path -Path "$env:USERPROFILE/.wslconfig") {
