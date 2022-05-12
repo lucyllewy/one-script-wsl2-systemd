@@ -176,7 +176,7 @@ Get-WslDistribution | ForEach-Object {
     Remove-WslFiles -Files $userFiles -Distribution $_ -User 'root'
     if (Test-Path -Path "$($Distribution.FileSystemPath)\etc\wsl.conf") {
         $wslconfig = Get-IniContent "$($Distribution.FileSystemPath)\etc\wsl.conf"
-        if ($wslconfig["boot"]) {
+        if ($wslconfig["boot"] -and $wslconfig.boot.command -eq "/usr/bin/env -i /usr/bin/unshare --fork --mount-proc --pid -- sh -c 'mount -t binfmt_misc binfmt_misc /proc/sys/fs/binfmt_misc; [ -x /usr/lib/systemd/systemd ] && exec /usr/lib/systemd/systemd --unit=multi-user.target || exec /lib/systemd/systemd --unit=multi-user.target'") {
             $wslconfig.boot.Remove('command')
             (Write-IniOutput $wslconfig) -Join "`n" | Add-WslFileContent -Distribution $Distribution -User "root" -File "/etc/wsl.conf"
         }
