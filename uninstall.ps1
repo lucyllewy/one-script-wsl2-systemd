@@ -1,18 +1,31 @@
 Using module Wsl
 
+param(
+    [Parameter(Mandatory=$false)]
+    [ValidateNotNullOrEmpty()]
+    [string]
+    $Distro,
+
+    [switch]
+    $LeaveGPG,
+
+    [switch]
+    $LeaveKernel
+)
+
 $PSDefaultParameterValues['*:Encoding'] = 'utf8'
 
 $rootFiles = @(
-    '/etc/profile.d/00-wsl2-systemd.sh',
-    '/etc/sudoers.d/wsl2-systemd',
-    '/usr/share/applications/wslview.desktop',
-    '/etc/systemd/system/user-runtime-dir@.service.d/override.conf',
-    '/etc/systemd/system/wsl2-xwayland.service',
-    '/etc/systemd/system/wsl2-xwayland.socket'
-    )
+    @{ 'dest' = '/etc/profile.d/00-wsl2-systemd.sh' },
+    @{ 'dest' = '/etc/sudoers.d/wsl2-systemd' },
+    @{ 'dest' = '/usr/share/applications/wslview.desktop' },
+    @{ 'dest' = '/etc/systemd/system/user-runtime-dir@.service.d/override.conf' },
+    @{ 'dest' = '/etc/systemd/system/wsl2-xwayland.service' },
+    @{ 'dest' = '/etc/systemd/system/wsl2-xwayland.socket' }
+)
 $userFiles = @(
-    '/home/*/.wslprofile.d',
-    '/home/*/.wsl-cmds'
+    @{ 'dest' = '/home/*/.wslprofile.d' },
+    @{ 'dest' = '/home/*/.wsl-cmds' }
 )
 
 function Invoke-WslCommand
@@ -47,7 +60,8 @@ function Invoke-WslCommand
         }
 
         $Distribution | ForEach-Object {
-            $wslargs = @("--distribution", $_.Name)
+            $DistroName = $_.Name
+            $wslargs = @("--distribution", $DistroName)
             if ($User) {
                 $wslargs += @("--user", $User)
             }
@@ -56,15 +70,48 @@ function Invoke-WslCommand
             $Command = $Command.Replace("`r`n", "`n") # Replace Windows newlines with Unix ones
             $Command += '#' # Add a comment on the last line to hide PowerShell cruft added to the end of the string
 
-            if ($PSCmdlet.ShouldProcess($_.Name, "Invoke Command")) {
-                $Command | &$wslPath @wslargs /bin/bash
+            if ($PSCmdlet.ShouldProcess($DistroName, "Invoke Command")) {
+                $Command | &$wslPath @wslargs /bin/sh
                 if ($LASTEXITCODE -ne 0) {
                     # Note: this could be the exit code of wsl.exe, or of the launched command.
-                    throw "Wsl.exe returned exit code $LASTEXITCODE"
+                    throw "Wsl.exe returned exit code $LASTEXITCODE from distro: ${DistroName}"
                 }    
             }
         }
     }
+}
+
+function Add-WslFileContent {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory=$true, ValueFromPipeline=$true)]
+        [string]$Content,
+
+        [Parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [WslDistribution[]]$Distribution,
+
+        [Parameter(Mandatory=$false)]
+        [ValidateNotNullOrEmpty()]
+        [string]$User,
+
+        [Parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$File
+    )
+
+    $commandArgs = @{}
+    if ($User) {
+        $commandArgs = @{User = $User}
+    }
+
+    $bytes = [System.Text.Encoding]::UTF8.GetBytes($Content)
+    $base64 = [Convert]::ToBase64String($bytes)
+
+    $Directory = ($File | Split-Path).Replace('\', '/')
+
+    $Command = "mkdir -p `"$Directory`" && echo '$base64' | base64 -d > `"$File`""
+    Invoke-WslCommand -Distribution $Distribution @commandArgs -Command $Command
 }
 
 function Remove-WslFiles {
@@ -87,7 +134,7 @@ function Remove-WslFiles {
         foreach ($file in $Files) {
             $remove = $file.dest
             $commandArgs = @{}
-            if ($_['user']) {
+            if ($file['user']) {
                 $commandArgs = @{User = $file.user}
             } elseif ($User) {
                 $commandArgs = @{User = $User}
@@ -169,9 +216,20 @@ if ($PSVersionTable.PSEdition -eq "Core" -and -not $IsWindows) {
     exit
 }
 
+if ($Distro -and -not ($Distribution = Get-WslDistribution -Name $Distro)) {
+    Write-Error "!!! $Distro is not currently installed. Refusing to continue."
+    exit
+}
+if (-not $Distribution) {
+    # Get all distributions except docker-desktop-related
+    $Distribution = Get-WslDistribution | Where-Object -Property Name -NotLike -Value "docker-desktop*"
+}
+
 Write-Output "---------------------------------------------------------`n`n"
 
-Get-WslDistribution | ForEach-Object {
+$Distribution | ForEach-Object {
+    $DistroName = $_.Name
+    Write-Output "Uninstalling systemd enablement from $DistroName"
     Remove-WslFiles -Files $rootFiles -Distribution $_ -User 'root'
     Remove-WslFiles -Files $userFiles -Distribution $_ -User 'root'
     if (Test-Path -Path "$($Distribution.FileSystemPath)\etc\wsl.conf") {
@@ -183,9 +241,20 @@ Get-WslDistribution | ForEach-Object {
     }
 }
 
-winget.exe uninstall gnupg.Gpg4win
+if (-not $LeaveGPG) {
+    Write-Output "Uninstalling GnuPG"
+    winget.exe uninstall gnupg.Gpg4win
+    Start-Process -Verb RunAs -Wait -FilePath $powershellProcess -Args '-NonInteractive', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'ByPass', '-Command', "Unregister-ScheduledJob -Name GPGAgent -Force"
+}
 
-Start-Process -Verb RunAs -Wait -FilePath $powershellProcess -Args '-NonInteractive', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'ByPass', '-Command', @"
-Unregister-ScheduledJob -Name GPGAgent -Force
-Unregister-ScheduledJob -Name UpdateWSL2CustomKernel -Force
-"@
+if (-not $LeaveKernel) {
+    Write-Output "Reverting WSL to the Microsoft-provided kernel"
+    Start-Process -Verb RunAs -Wait -FilePath $powershellProcess -Args '-NonInteractive', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'ByPass', '-Command', "Unregister-ScheduledJob -Name UpdateWSL2CustomKernel -Force"
+    if (Test-Path -Path "$env:USERPROFILE/.wslconfig") {
+        $wslconfig = Get-IniContent "$env:USERPROFILE/.wslconfig"
+        $wslconfig["wsl2"].Remove("kernel")
+        Out-IniFile $wslconfig "$env:USERPROFILE/.wslconfig"
+    }
+}
+
+Write-Output "Done."

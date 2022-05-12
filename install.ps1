@@ -351,7 +351,7 @@ function Remove-WslFiles {
         foreach ($file in $Files) {
             $remove = $file.dest
             $commandArgs = @{}
-            if ($_['user']) {
+            if ($file['user']) {
                 $commandArgs = @{User = $file.user}
             } elseif ($User) {
                 $commandArgs = @{User = $User}
@@ -417,10 +417,12 @@ Write-Output "---------------------------------------------------------`n`n"
 if ($Distro -and -not ($Distribution = Get-WslDistribution -Name $Distro)) {
     Write-Error "!!! $Distro is not currently installed. Refusing to continue."
     exit
-} elseif (-not ($Distribution = Get-WslDistribution -Default)) {
+}
+if ($Distribution -and -not ($Distribution = Get-WslDistribution -Default)) {
     Write-Error "!!! You do not have a default distribution. Refusing to continue."
     exit
-} else {
+}
+if (-not $Distribution) {
     Write-Debug "--- No distro specified, using your default distro $($Distribution.Name)"
 }
 
