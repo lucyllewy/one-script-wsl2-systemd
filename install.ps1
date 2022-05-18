@@ -457,7 +457,7 @@ if (-not $wslconfig["boot"]) {
 if (-not $wslconfig["boot"]["command"]) {
     $wslconfig["boot"]["command"] = ""
 }
-$wslconfig.boot.command = "/usr/bin/env -i /usr/bin/unshare --fork --mount-proc --pid -- sh -c 'mount -t binfmt_misc binfmt_misc /proc/sys/fs/binfmt_misc; [ -x /usr/lib/systemd/systemd ] && exec /usr/lib/systemd/systemd --unit=multi-user.target || exec /lib/systemd/systemd --unit=multi-user.target'"
+$wslconfig.boot.command = "/usr/bin/env -i /usr/bin/unshare --fork --mount --propagation shared --mount-proc --pid -- sh -c 'mount -t binfmt_misc binfmt_misc /proc/sys/fs/binfmt_misc; [ -x /usr/lib/systemd/systemd ] && exec /usr/lib/systemd/systemd --unit=multi-user.target || exec /lib/systemd/systemd --unit=multi-user.target'"
 (Write-IniOutput $wslconfig) -Join "`n" | Add-WslFileContent -Distribution $Distribution -User "root" -File "/etc/wsl.conf"
 
 # Setup agent sockets
