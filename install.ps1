@@ -419,6 +419,7 @@ if ($Distro -and -not ($Distribution = Get-WslDistribution -Name $Distro)) {
     exit
 }
 if ($Distribution -and -not ($Distribution = Get-WslDistribution -Default)) {
+if (-not $Distribution -and -not ($Distribution = Get-WslDistribution -Default)) {
     Write-Error "!!! You do not have a default distribution. Refusing to continue."
     exit
 }
@@ -432,6 +433,7 @@ if (-not $User) {
         $User = Invoke-WslCommand -Distribution $Distribution -Command "whoami"
     } catch {
         Write-Error "Cannot detect username of your account in $Distribution. Aborting."
+        Write-Error $_
         exit
     }
 }
