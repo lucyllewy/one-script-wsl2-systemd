@@ -66,10 +66,7 @@ if [ -z "$SYSTEMD_PID" ] || [ "$SYSTEMD_PID" -ne 1 ]; then
 	fi
 
 	if [ -z "$SYSTEMD_PID" ]; then
-		env -i /usr/bin/unshare --fork --mount --propagation shared --mount-proc --pid -- sh -c "
-			mount -t binfmt_misc binfmt_misc /proc/sys/fs/binfmt_misc
-			exec $SYSTEMD_EXE
-			" &
+		/bin/sh /usr/sbin/systemd-boot.sh
 		while [ -z "$SYSTEMD_PID" ]; do
 			SYSTEMD_PID="$(ps -C systemd -o pid= | head -n1)"
 			sleep 1
