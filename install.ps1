@@ -20,7 +20,7 @@ param(
 
 $PSDefaultParameterValues['*:Encoding'] = 'utf8'
 
-$repoUrl = 'https://raw.githubusercontent.com/diddlesnaps/one-script-wsl2-systemd/main/'
+$repoUrl = 'https://raw.githubusercontent.com/diddledani/one-script-wsl2-systemd/apparmor-namespace/'
 
 # The main files to install.
 $files = @{
@@ -29,42 +29,49 @@ $files = @{
         'dest' = '/etc/profile.d/00-wsl2-systemd.sh';
         'errorIsFatal' = $true;
         'errorMessage' = 'Could not fetch the systemd script. Aborting installation.';
-        'user' = 'root'
+        'user' = 'root';
     };
     'sudoers' = @{
         'source' = 'src/sudoers';
         'dest' = '/etc/sudoers.d/wsl2-systemd';
         'errorIsFatal' = $true;
         'errorMessage' = 'Could not fetch the sudoers file. Aborting installation.';
-        'user' = 'root'
+        'user' = 'root';
     };
     'wslview-desktop' = @{
         'source' = 'src/applications/wslview.desktop';
         'dest' = '/usr/share/applications/wslview.desktop';
         'errorIsFatal' = $false;
         'errorMessage' = 'Could not set up default file handler forwarding to Windows';
-        'user' = 'root'
+        'user' = 'root';
     };
     'user-runtime-dir' = @{
         'source' = 'src/systemd/user-runtime-dir.override';
         'dest' = '/etc/systemd/system/user-runtime-dir@.service.d/override.conf';
         'errorIsFatal' = $false;
         'errorMessage' = 'Could not install Wayland support - Snaps supporting Wayland will fail to launch';
-        'user' = 'root'
+        'user' = 'root';
     };
     'xwayland-service' = @{
         'source' = 'src/systemd/wsl2-xwayland.service';
         'dest' = '/etc/systemd/system/wsl2-xwayland.service';
         'errorIsFatal' = $false;
         'errorMessage' = 'Could not install XWayland support - GUI snaps will not work';
-        'user' = 'root'
+        'user' = 'root';
     };
     'xwayland-socket' = @{
         'source' = 'src/systemd/wsl2-xwayland.socket';
         'dest' = '/etc/systemd/system/wsl2-xwayland.socket';
         'errorIsFatal' = $false;
         'errorMessage' = 'Could not install XWayland support - GUI snaps will not work';
-        'user' = 'root'
+        'user' = 'root';
+    };
+    'systemd-boot.sh' = @{
+        'source' = 'src/systemd-boot.sh';
+        'dest' = '/usr/sbin/systemd-boot.sh';
+        'errorIsFatal' = $true;
+        'errorMessage' = 'Could not install systemd boot script - system will not function at all';
+        'user' = 'root';
     };
 }
 
@@ -458,7 +465,7 @@ if (-not $wslconfig["boot"]) {
 if (-not $wslconfig["boot"]["command"]) {
     $wslconfig["boot"]["command"] = ""
 }
-$wslconfig.boot.command = "/usr/bin/env -i /usr/bin/unshare --fork --mount --propagation shared --mount-proc --pid -- sh -c 'mount -t binfmt_misc binfmt_misc /proc/sys/fs/binfmt_misc; [ -x /usr/lib/systemd/systemd ] && exec /usr/lib/systemd/systemd --unit=multi-user.target || exec /lib/systemd/systemd --unit=multi-user.target'"
+$wslconfig.boot.command = "/bin/sh /usr/sbin/systemd-boot.sh"
 (Write-IniOutput $wslconfig) -Join "`n" | Add-WslFileContent -Distribution $Distribution -User "root" -File "/etc/wsl.conf"
 
 # Setup agent sockets
