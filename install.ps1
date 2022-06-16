@@ -418,7 +418,6 @@ if ($Distro -and -not ($Distribution = Get-WslDistribution -Name $Distro)) {
     Write-Error "!!! $Distro is not currently installed. Refusing to continue."
     exit
 }
-if ($Distribution -and -not ($Distribution = Get-WslDistribution -Default)) {
 if (-not $Distribution -and -not ($Distribution = Get-WslDistribution -Default)) {
     Write-Error "!!! You do not have a default distribution. Refusing to continue."
     exit
