@@ -548,6 +548,55 @@ if [ -f /etc/os-release ]; then
 fi
 '@
 
+# Install systemd-container for access to machinectl executable
+Write-Debug "--- Installing systemd-container in $($Distribution.Name)"
+Invoke-WslCommand -ErrorAction SilentlyContinue -Distribution $Distribution -User 'root' -Command @'
+do_ubuntu() {
+    do_apt
+}
+do_kali() {
+    do_apt
+}
+do_apt() {
+    export DEBIAN_FRONTEND=noninteractive
+    apt-get update
+    apt-get install -yyq systemd-container
+}
+do_apk() {
+    exit 0
+}
+do_sles() {
+    do_zypper
+}
+do_zypper() {
+    zypper --non-interactive install systemd-container
+}
+if [ -f /etc/os-release ]; then
+    . /etc/os-release
+    case "$ID" in
+        "ubuntu")
+            do_ubuntu ;;
+        "kali")
+            do_kali ;;
+        "debian")
+            do_apt ;;
+        "alpine")
+            do_apk ;;
+        "sles")
+            do_sles ;;
+        *)
+            case "$ID_LIKE" in
+                *"debian"*)
+                    do_apt ;;
+                *"suse"*)
+                    do_zypper ;;
+                *)
+            esac
+            ;;
+    esac
+fi
+'@
+
 # Install ZSH
 Write-Debug "--- Installing ZSH in $($Distribution.Name)"
 Invoke-WslCommand -ErrorAction SilentlyContinue -Distribution $Distribution -User 'root' -Command @'
