@@ -20,7 +20,7 @@ param(
 
 $PSDefaultParameterValues['*:Encoding'] = 'utf8'
 
-$repoUrl = 'https://raw.githubusercontent.com/diddledani/one-script-wsl2-systemd/apparmor-namespace/'
+$repoUrl = 'https://raw.githubusercontent.com/diddledani/one-script-wsl2-systemd/main/'
 
 # The main files to install.
 $files = @{
